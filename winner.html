@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RGB Guess - Winners</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 15% 20%, #243b55, #0f172a 55%);
+            color: #f9fafb;
+            overflow-x: hidden;
+        }
+        .trophy {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .podium-stage {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+        .podium-column {
+            background: linear-gradient(180deg, rgba(59,130,246,0.15), rgba(15,23,42,0.95));
+            border: 1px solid rgba(148,163,184,0.4);
+            border-radius: 1.25rem 1.25rem 0.5rem 0.5rem;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 15px 35px rgba(15,23,42,0.6);
+        }
+        .podium-column.first { height: 220px; }
+        .podium-column.second { height: 180px; }
+        .podium-column.third { height: 160px; }
+        .podium-rank {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #e2e8f0;
+        }
+        .podium-name {
+            margin-top: 0.35rem;
+            font-weight: 600;
+            color: #cbd5f5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .podium-score {
+            font-size: 0.85rem;
+            color: #93c5fd;
+        }
+        .confetti {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .confetti span {
+            position: absolute;
+            width: 6px;
+            height: 16px;
+            border-radius: 999px;
+            animation: confetti-fall linear infinite;
+            opacity: 0.65;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-120%) rotate(0deg); }
+            100% { transform: translateY(120%) rotate(360deg); }
+        }
+        .fade-in {
+            animation: fade-in 0.8s ease forwards;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-outline {
+            animation: pulse 2.4s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.35); }
+            100% { box-shadow: 0 0 0 25px rgba(59,130,246,0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6 relative">
+    <div class="confetti" id="confetti-container"></div>
+    <div class="w-full max-w-4xl bg-slate-900/85 border border-cyan-500/40 rounded-3xl shadow-2xl p-8 space-y-10 pulse-outline">
+        <div class="flex flex-col items-center text-center space-y-2">
+            <svg class="trophy w-16 h-16 text-yellow-400 mb-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17 3h-1V2a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H7a1 1 0 0 0-1 1v2a4 4 0 0 0 3 3.87V11a3 3 0 0 0 2 2.82V16H8a1 1 0 0 0-1 1v2H6a1 1 0 0 0 0 2h12a1 1 0 0 0 0-2h-1v-2a1 1 0 0 0-1-1h-3v-2.18A3 3 0 0 0 15 11V9.87A4 4 0 0 0 18 6V4a1 1 0 0 0-1-1Zm-8 1h6v3a2 2 0 1 1-6 0Zm8 3a4 4 0 0 0 2-3v-1h-2ZM7 4v1a4 4 0 0 0 2 3V4Zm3 13h4v1h-4Z"/>
+            </svg>
+            <p class="text-xs uppercase tracking-[0.4em] text-cyan-300">RGB Guess</p>
+            <h1 class="text-4xl font-extrabold text-white tracking-wide">Hall of Fame</h1>
+            <p class="text-cyan-200 mt-2">Celebrating the sharpest eyes in this room.</p>
+        </div>
+
+        <div class="relative w-full max-w-3xl mx-auto fade-in">
+            <div class="podium-stage">
+                <div class="podium-column second" id="podium-2">
+                    <div class="podium-rank">2</div>
+                    <div class="podium-name">--</div>
+                    <div class="podium-score">0 pts</div>
+                </div>
+                <div class="podium-column first" id="podium-1">
+                    <div class="text-4xl mb-2">👑</div>
+                    <div class="podium-rank">1</div>
+                    <div class="podium-name">--</div>
+                    <div class="podium-score">0 pts</div>
+                </div>
+                <div class="podium-column third" id="podium-3">
+                    <div class="podium-rank">3</div>
+                    <div class="podium-name">--</div>
+                    <div class="podium-score">0 pts</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="winner-content" class="space-y-6">
+            <div id="winner-main" class="bg-slate-800/70 border border-cyan-500/40 rounded-2xl p-6 hidden text-center"></div>
+
+            <div id="standings" class="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 hidden">
+                <h3 class="text-xl font-semibold mb-4 text-white">Full leaderboard</h3>
+                <ol id="standings-list" class="space-y-2 text-sm text-cyan-100"></ol>
+            </div>
+
+            <div id="cta" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hidden">
+                <a id="new-room-link" class="text-cyan-300 text-sm underline" href="index.html">Start a new room</a>
+                <button id="copy-link-btn" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-white text-sm">Copy room link</button>
+            </div>
+
+            <div id="status-message" class="text-center text-gray-400 text-sm"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyCM-WlWhbhI3mxWXm9uXMQBa8mfFWoIoTA",
+          authDomain: "rgb-guess-v2.firebaseapp.com",
+          projectId: "rgb-guess-v2",
+          storageBucket: "rgb-guess-v2.firebasestorage.app",
+          messagingSenderId: "708736577431",
+          appId: "1:708736577431:web:678622192b3ebb0d7b1ed2",
+          measurementId: "G-3SW56Q6VSR"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const params = new URLSearchParams(window.location.search);
+        const gameId = params.get("game");
+
+        const statusMessage = document.getElementById("status-message");
+        const winnerMain = document.getElementById("winner-main");
+        const standings = document.getElementById("standings");
+        const standingsList = document.getElementById("standings-list");
+        const cta = document.getElementById("cta");
+        const copyLinkBtn = document.getElementById("copy-link-btn");
+        const newRoomLink = document.getElementById("new-room-link");
+
+        const winnerMusic = new Audio("music/Victory Royale.mp3");
+        winnerMusic.loop = false;
+        winnerMusic.volume = 0.35;
+
+        if (!gameId) {
+            statusMessage.textContent = "Missing game identifier. Please return to the main page.";
+            statusMessage.classList.remove("hidden");
+        } else {
+            init();
+        }
+
+        async function init() {
+            try {
+                const gameDoc = await getDoc(doc(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_game_state", gameId));
+                if (!gameDoc.exists()) {
+                    statusMessage.textContent = "This game could not be found. It may have been removed.";
+                    return;
+                }
+
+                const data = gameDoc.data();
+                if (!Array.isArray(data.finalStandings) || data.finalStandings.length === 0) {
+                    statusMessage.textContent = "Winner data is not ready yet. Please wait a moment.";
+                    setTimeout(init, 2000);
+                    return;
+                }
+
+                const standingsData = data.finalStandings
+                    .filter(player => !player.isHost)
+                    .map((player, index) => ({
+                        rank: index + 1,
+                        nickname: player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Player"),
+                        totalScore: Number(player.totalScore ?? 0)
+                    }));
+
+                if (standingsData.length === 0) {
+                    statusMessage.textContent = "No eligible players were found.";
+                    return;
+                }
+
+                populatePodium(standingsData.slice(0, 3));
+                populateWinnerCard(standingsData[0]);
+                winnerMain.classList.remove("hidden");
+                if (sessionStorage.getItem("rgbIsHost") === "true") {
+                    winnerMusic.play().catch(() => {});
+                }
+
+                standingsList.innerHTML = standingsData
+                    .map(player => `
+                        <li class="flex justify-between items-center bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-2">
+                            <span class="font-semibold text-white">#${player.rank} ${player.nickname}</span>
+                            <span class="text-cyan-300">${player.totalScore}</span>
+                        </li>
+                    `)
+                    .join("");
+                standings.classList.remove("hidden");
+
+                const roomLink = `${window.location.origin}/index.html?game=${encodeURIComponent(gameId)}`;
+                copyLinkBtn.addEventListener("click", async () => {
+                    if (!navigator.clipboard) {
+                        copyLinkBtn.textContent = "Clipboard unavailable";
+                        setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+                        return;
+                    }
+                    try {
+                        await navigator.clipboard.writeText(roomLink);
+                        copyLinkBtn.textContent = "Link copied!";
+                        setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+                    } catch {
+                        copyLinkBtn.textContent = "Copy failed";
+                        setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+                    }
+                });
+                newRoomLink.href = "index.html";
+                cta.classList.remove("hidden");
+            } catch (error) {
+                console.error("Error loading winner page:", error);
+                statusMessage.textContent = "Something went wrong while loading the winner page.";
+            }
+        }
+
+        function populateWinnerCard(champion) {
+            if (!champion) {
+                winnerMain.innerHTML = `<p class="text-gray-400 text-sm text-center">No champion data available.</p>`;
+                return;
+            }
+            winnerMain.innerHTML = `
+                <p class="text-sm uppercase tracking-[0.4em] text-yellow-200 mb-2">Champion</p>
+                <h2 class="text-3xl font-bold text-white">${champion.nickname}</h2>
+                <p class="text-cyan-200 mt-2">Total score: ${champion.totalScore}</p>
+            `;
+        }
+
+        function populatePodium(topThree) {
+            const columns = [
+                { element: document.getElementById("podium-1"), data: topThree[0], rank: "1" },
+                { element: document.getElementById("podium-2"), data: topThree[1], rank: "2" },
+                { element: document.getElementById("podium-3"), data: topThree[2], rank: "3" }
+            ];
+            columns.forEach(({ element, data, rank }) => {
+                if (!element) return;
+                element.querySelector(".podium-rank").textContent = rank;
+                element.querySelector(".podium-name").textContent = data ? data.nickname : "--";
+                element.querySelector(".podium-score").textContent = data ? `${data.totalScore} pts` : "0 pts";
+            });
+            spawnConfetti();
+        }
+
+        function spawnConfetti() {
+            const container = document.getElementById("confetti-container");
+            if (!container) return;
+            container.innerHTML = "";
+            const colors = ["#fbbf24", "#34d399", "#60a5fa", "#f472b6"];
+            for (let i = 0; i < 80; i += 1) {
+                const piece = document.createElement("span");
+                piece.style.left = `${Math.random() * 100}%`;
+                piece.style.animationDuration = `${4 + Math.random() * 3}s`;
+                piece.style.animationDelay = `${Math.random() * 2}s`;
+                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                container.appendChild(piece);
+            }
+        }
+    </script>
+</body>
+</html>

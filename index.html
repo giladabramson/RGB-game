@@ -1,0 +1,1610 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guess the RGB - Multiplayer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #f9fafb;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #374151;
+            outline: none;
+            opacity: 0.9;
+            transition: opacity .2s;
+        }
+
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            border: 4px solid #f9fafb;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            border: 4px solid #f9fafb;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-box {
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="flex items-start justify-center min-h-screen p-4">
+    <!-- Nickname Modal -->
+    <div id="nickname-modal" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm border border-cyan-600">
+            <h3 class="text-2xl font-bold mb-4 text-white">Choose a nickname</h3>
+            <p class="text-gray-400 mb-6">This nickname will be visible to other players on the scoreboard.</p>
+            <input type="text" id="nickname-input" placeholder="Type nickname here..." class="w-full p-3 mb-4 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500" maxlength="15" />
+            <div class="space-y-3">
+                <button id="save-nickname-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition-colors duration-200 disabled:bg-cyan-800 disabled:opacity-50">
+                    Save nickname
+                </button>
+                <button id="cancel-nickname-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 rounded-lg transition-colors duration-200">
+                    Cancel
+                </button>
+            </div>
+            <p id="nickname-error" class="text-red-500 text-sm mt-2 hidden">Please enter a valid nickname (2-15 characters).</p>
+        </div>
+    </div>
+
+    <div id="entry-screen" class="w-full max-w-2xl bg-gray-900 rounded-3xl shadow-2xl p-8 md:p-10 mt-10 border border-cyan-700/40">
+        <h1 class="text-4xl font-bold text-center text-white mb-4">Guess the RGB</h1>
+        <p class="text-center text-gray-300 mb-10">Welcome! Create a new room as the host or join an existing one with its six-digit access code.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-800/80 rounded-2xl border border-cyan-500/40 p-6 flex flex-col">
+                <p class="text-sm uppercase tracking-widest text-cyan-300 mb-2">Start a new game</p>
+                <h2 class="text-2xl font-semibold text-white mb-3">Host controls</h2>
+                <p class="text-sm text-gray-300 flex-1">You decide the target colors and manage each round. We'll generate a six-digit code to share with friends.</p>
+                <button id="host-start-btn" class="mt-6 bg-cyan-500 hover:bg-cyan-400 text-gray-900 font-bold py-3 rounded-xl transition-colors text-center">Create game</button>
+            </div>
+            <div class="bg-gray-800/80 rounded-2xl border border-purple-500/40 p-6 flex flex-col">
+                <p class="text-sm uppercase tracking-widest text-purple-200 mb-2">Join existing room</p>
+                <h2 class="text-2xl font-semibold text-white mb-3">I'm a player</h2>
+                <p class="text-sm text-gray-300">Enter the six-digit code your host shares with you.</p>
+                <div class="mt-6 space-y-3">
+                    <input id="join-code-input" maxlength="6" placeholder="Enter code" class="w-full bg-gray-900 text-white border border-gray-600 rounded-lg px-4 py-3 tracking-[0.4em] text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <button id="join-game-btn" class="w-full bg-purple-500 hover:bg-purple-400 text-gray-900 font-bold py-3 rounded-xl transition-colors">Join game</button>
+                </div>
+            </div>
+        </div>
+        <p id="entry-error" class="text-center text-sm text-red-400 mt-6 hidden">Unable to continue. Please try again.</p>
+    </div>
+
+    <div id="game-screen" class="hidden w-full max-w-4xl mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 mt-10">
+        <h1 class="text-3xl font-bold text-center text-white mb-4">Guess the RGB</h1>
+        <p class="text-xs text-center text-gray-400 mb-4">Round <span id="round-number">1</span> of <span id="round-total">∞</span></p>
+        <div id="player-info-wrapper" class="space-y-1 mb-4">
+            <p class="text-xs text-center text-gray-500 mb-0">
+                Player: <span id="user-id-display" class="font-mono text-cyan-400">Loading...</span>
+                (<span id="role-display" class="font-bold text-yellow-400">Player</span>)
+                <button id="change-nickname-btn" class="text-xs text-cyan-400 hover:text-cyan-300 underline align-middle hidden">Change nickname</button>
+            </p>
+            <p id="player-room-code" class="text-[11px] text-center text-gray-400 hidden"></p>
+        </div>
+
+        <div id="target-color-wrapper" class="mb-6">
+            <h2 class="text-lg font-medium text-gray-300 mb-2 text-center">Target color (shared)</h2>
+            <div id="target-color-box" class="w-full h-32 md:h-40 rounded-lg border-4 border-gray-700 color-box"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="host-panel" class="hidden mb-6">
+                <div class="bg-gradient-to-br from-gray-900/60 via-gray-900/80 to-gray-800/80 border border-cyan-500 rounded-2xl p-6 space-y-6 shadow-[0_0_30px_rgba(14,165,233,0.35)]">
+                <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div class="space-y-1">
+                        <p class="text-xs uppercase tracking-widest text-cyan-300">Host view</p>
+                        <p class="text-3xl font-bold text-white">Round <span id="host-round-number">1</span></p>
+                        <p class="text-xs text-gray-400">Only the shared target is visible to players.</p>
+                    </div>
+                    <button id="start-new-round-btn" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-5 rounded-lg text-lg transition-colors shadow-lg">
+                        Start next round
+                    </button>
+                </div>
+
+                <div id="room-code-wrapper" class="bg-gray-900/80 border border-cyan-600/40 rounded-2xl p-4 space-y-2 text-center">
+                    <p class="text-xs uppercase tracking-widest text-cyan-300">Room code</p>
+                    <p id="room-code-display" class="text-3xl font-mono font-bold text-white tracking-[0.35em]">------</p>
+                    <p class="text-[11px] text-gray-400">Share this key with players so they can join.</p>
+                </div>
+
+                <div id="host-scoreboard" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        <span>Player</span>
+                        <span>Total</span>
+                    </div>
+                    <ul id="host-scoreboard-list" class="space-y-2 max-h-52 overflow-y-auto pr-1 text-sm text-gray-300">
+                        <li class="text-center text-gray-500">Waiting for players...</li>
+                    </ul>
+                </div>
+
+                <div id="round-config" class="space-y-3">
+                    <label for="round-count" class="block text-sm font-medium text-gray-300">Rounds to play</label>
+                    <input id="round-count" type="number" min="1" max="99" value="5" class="w-full bg-gray-900 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                    <button id="confirm-round-count-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Confirm rounds &amp; start game</button>
+                    <p id="round-count-error" class="text-red-400 text-xs mt-2 hidden">Please enter a number between 1 and 99.</p>
+                </div>
+
+                <button id="show-winner-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold py-3 rounded-xl transition-colors hidden">
+                    Show final winner
+                </button>
+
+                <div id="waiting-room-demo" class="hidden bg-gray-900/80 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-widest text-indigo-300">Demo board</p>
+                        <p class="text-[11px] text-gray-400">Use these sliders to explain how players match the target color.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs uppercase tracking-widest text-gray-400">Red</label>
+                                <input type="range" id="demo-red-slider" min="0" max="255" value="128" class="w-full">
+                            </div>
+                            <div>
+                                <label class="text-xs uppercase tracking-widest text-gray-400">Green</label>
+                                <input type="range" id="demo-green-slider" min="0" max="255" value="128" class="w-full">
+                            </div>
+                            <div>
+                                <label class="text-xs uppercase tracking-widest text-gray-400">Blue</label>
+                                <input type="range" id="demo-blue-slider" min="0" max="255" value="128" class="w-full">
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center space-y-2">
+                            <div id="demo-preview" class="w-full h-32 rounded-xl border border-gray-600"></div>
+                            <p id="demo-preview-label" class="text-xs text-gray-400 font-mono">RGB(128, 128, 128)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div id="feedback-message" class="h-16 text-center text-xl font-medium text-gray-200 flex items-center justify-center p-2 rounded-lg bg-gray-700/50 mb-6">
+            Waiting for the host to start the game...
+        </div>
+
+        <div id="player-panel" class="lg:col-span-2">
+            <h2 class="text-xl font-semibold text-white mt-8 mb-4 border-b border-gray-700 pb-2">My guess</h2>
+
+        <div id="guess-controls" class="space-y-5 mb-6">
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label for="red-slider" class="text-lg font-medium text-red-400">Red (R)</label>
+                    <span id="red-value" class="text-lg font-semibold text-white bg-red-600 px-3 py-1 rounded-md">128</span>
+                </div>
+                <input type="range" id="red-slider" min="0" max="255" value="128" class="slider" disabled />
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label for="green-slider" class="text-lg font-medium text-green-400">Green (G)</label>
+                    <span id="green-value" class="text-lg font-semibold text-white bg-green-600 px-3 py-1 rounded-md">128</span>
+                </div>
+                <input type="range" id="green-slider" min="0" max="255" value="128" class="slider" disabled />
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label for="blue-slider" class="text-lg font-medium text-blue-400">Blue (B)</label>
+                    <span id="blue-value" class="text-lg font-semibold text-white bg-blue-600 px-3 py-1 rounded-md">128</span>
+                </div>
+                <input type="range" id="blue-slider" min="0" max="255" value="128" class="slider" disabled />
+            </div>
+        </div>
+
+        <div id="player-action-btns" class="space-y-4 mb-6">
+            <button id="submit-guess-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200 shadow-lg disabled:bg-cyan-800 disabled:opacity-50">
+                Submit guess
+            </button>
+        </div>
+
+        <div id="player-practice-board" class="bg-gray-900/80 border border-indigo-500/30 rounded-2xl p-4 space-y-3 mb-6 hidden">
+            <div>
+                <p class="text-xs uppercase tracking-widest text-indigo-300">Practice board</p>
+                <p class="text-[11px] text-gray-400">Adjust these sliders to test color combinations without affecting your real guess.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs uppercase tracking-widest text-gray-400">Red</label>
+                        <input type="range" id="practice-red-slider" min="0" max="255" value="128" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs uppercase tracking-widest text-gray-400">Green</label>
+                        <input type="range" id="practice-green-slider" min="0" max="255" value="128" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs uppercase tracking-widest text-gray-400">Blue</label>
+                        <input type="range" id="practice-blue-slider" min="0" max="255" value="128" class="w-full">
+                    </div>
+                </div>
+                <div class="flex flex-col items-center justify-center space-y-2">
+                    <div id="practice-preview" class="w-full h-32 rounded-xl border border-gray-600"></div>
+                    <p id="practice-preview-label" class="text-xs text-gray-400 font-mono">RGB(128, 128, 128)</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="text-xl font-semibold text-white mt-8 mb-4 border-b border-gray-700 pb-2">Scoreboard <span id="results-round-number">1</span></h2>
+        <div id="guesses-table-container" class="overflow-x-auto bg-gray-700 rounded-lg p-3">
+            <table class="min-w-full divide-y divide-gray-600">
+                <thead>
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Player</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Total score</th>
+                    </tr>
+                </thead>
+                <tbody id="guesses-table-body" class="divide-y divide-gray-700">
+                    <tr class="text-center">
+                        <td colspan="2" class="py-4 text-gray-400">Scores will appear here once the first round is complete.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="correct-answer" class="text-center text-md text-gray-400 mt-3 hidden"></div>
+        <div id="winner-announcement" class="text-center text-lg font-semibold text-cyan-300 mt-4 hidden"></div>
+        </div>
+
+    </div>
+
+        <div id="round-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 hidden items-center justify-center">
+        <div class="bg-gray-800 border border-cyan-500 rounded-2xl p-8 w-full max-w-3xl shadow-2xl text-center">
+            <h3 class="text-2xl font-bold text-white mb-6">Round summary</h3>
+            <div class="flex flex-col md:flex-row gap-6 mb-6">
+                <div class="flex-1">
+                    <h4 class="text-lg font-semibold text-gray-200 mb-3">Score histogram</h4>
+                    <div id="histogram-container" class="flex items-end justify-center gap-4 min-h-[180px]"></div>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-lg font-semibold text-gray-200 mb-3">Target & guesses</h4>
+                    <div class="grid grid-cols-1 gap-3" id="round-summary-colors"></div>
+                </div>
+            </div>
+            <button id="overlay-next-round-btn" class="hidden w-full md:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-6 rounded-md transition-colors mx-auto">Start next round</button>
+            <p id="overlay-waiting-msg" class="text-gray-300 text-sm">Waiting for host to start next round...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs, runTransaction, getDoc, writeBatch, orderBy, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyCM-WlWhbhI3mxWXm9uXMQBa8mfFWoIoTA",
+          authDomain: "rgb-guess-v2.firebaseapp.com",
+          projectId: "rgb-guess-v2",
+          storageBucket: "rgb-guess-v2.firebasestorage.app",
+          messagingSenderId: "708736577431",
+          appId: "1:708736577431:web:678622192b3ebb0d7b1ed2",
+          measurementId: "G-3SW56Q6VSR"
+        };
+
+        const appId = "rgb-guess-game-master";
+        const ROOM_CODE_LENGTH = 6;
+        if (sessionStorage.getItem("rgbIsHost") === null) {
+            sessionStorage.setItem("rgbIsHost", "false");
+        }
+        let gameId = null;
+        let isHost = false;
+        let sessionInitialized = false;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        getAnalytics(app);
+
+        const GUESS_TIME_LIMIT_MS = 30000;
+
+        const targetColorBox = document.getElementById("target-color-box");
+        const targetColorWrapper = document.getElementById("target-color-wrapper");
+        const roomCodeWrapper = document.getElementById("room-code-wrapper");
+        const redSlider = document.getElementById("red-slider");
+        const greenSlider = document.getElementById("green-slider");
+        const blueSlider = document.getElementById("blue-slider");
+        const redValue = document.getElementById("red-value");
+        const greenValue = document.getElementById("green-value");
+        const blueValue = document.getElementById("blue-value");
+        const submitGuessBtn = document.getElementById("submit-guess-btn");
+        const startNewRoundBtn = document.getElementById("start-new-round-btn");
+        const feedbackMessage = document.getElementById("feedback-message");
+        const correctAnswer = document.getElementById("correct-answer");
+        const userIdDisplay = document.getElementById("user-id-display");
+        const roleDisplay = document.getElementById("role-display");
+        const roundNumberDisplay = document.getElementById("round-number");
+        const resultsRoundNumberDisplay = document.getElementById("results-round-number");
+        const guessesTableBody = document.getElementById("guesses-table-body");
+        const winnerAnnouncement = document.getElementById("winner-announcement");
+        const guessControls = document.getElementById("guess-controls");
+        const playerActionBtns = document.getElementById("player-action-btns");
+        const roundOverlay = document.getElementById("round-overlay");
+        const histogramContainer = document.getElementById("histogram-container");
+        const roundSummaryColors = document.getElementById("round-summary-colors");
+        const overlayNextRoundBtn = document.getElementById("overlay-next-round-btn");
+        const overlayWaitingMsg = document.getElementById("overlay-waiting-msg");
+        const hostPanel = document.getElementById("host-panel");
+        const playerPanel = document.getElementById("player-panel");
+        const playerInfoWrapper = document.getElementById("player-info-wrapper");
+        const entryScreen = document.getElementById("entry-screen");
+        const gameScreen = document.getElementById("game-screen");
+        const hostStartBtn = document.getElementById("host-start-btn");
+        const joinGameBtn = document.getElementById("join-game-btn");
+        const joinCodeInput = document.getElementById("join-code-input");
+        const entryError = document.getElementById("entry-error");
+        const roomCodeDisplay = document.getElementById("room-code-display");
+        const playerRoomCodeDisplay = document.getElementById("player-room-code");
+        const showWinnerBtn = document.getElementById("show-winner-btn");
+        const waitingRoomDemo = document.getElementById("waiting-room-demo");
+        const demoRedSlider = document.getElementById("demo-red-slider");
+        const demoGreenSlider = document.getElementById("demo-green-slider");
+        const demoBlueSlider = document.getElementById("demo-blue-slider");
+        const demoPreview = document.getElementById("demo-preview");
+        const demoPreviewLabel = document.getElementById("demo-preview-label");
+        const practiceBoard = document.getElementById("player-practice-board");
+        const practiceRedSlider = document.getElementById("practice-red-slider");
+        const practiceGreenSlider = document.getElementById("practice-green-slider");
+        const practiceBlueSlider = document.getElementById("practice-blue-slider");
+        const practicePreview = document.getElementById("practice-preview");
+        const practicePreviewLabel = document.getElementById("practice-preview-label");
+        const hostScoreboardList = document.getElementById("host-scoreboard-list");
+        const hostRoundNumberDisplay = document.getElementById("host-round-number");
+        const roundCountInput = document.getElementById("round-count");
+        const roundConfig = document.getElementById("round-config");
+        const roundCountError = document.getElementById("round-count-error");
+        const confirmRoundCountBtn = document.getElementById("confirm-round-count-btn");
+        const roundTotalDisplay = document.getElementById("round-total");
+
+        const nicknameModal = document.getElementById("nickname-modal");
+        const nicknameInput = document.getElementById("nickname-input");
+        const saveNicknameBtn = document.getElementById("save-nickname-btn");
+        const cancelNicknameBtn = document.getElementById("cancel-nickname-btn");
+        const changeNicknameBtn = document.getElementById("change-nickname-btn");
+        const nicknameError = document.getElementById("nickname-error");
+
+        const playersCollectionRef = collection(db, "artifacts", appId, "public", "data", "rgb_players");
+        const guessesCollectionRef = collection(db, "artifacts", appId, "public", "data", "rgb_guesses");
+        const roundHistoryCollectionRef = collection(db, "artifacts", appId, "public", "data", "rgb_round_history");
+        let gameDocRef = null;
+
+        let userId = null;
+        let isAdmin = false;
+        let playerNickname = null;
+        let allPlayersData = {};
+        let targetColor = { r: 0, g: 0, b: 0 };
+        let currentRound = 0;
+        let hasGuessed = false;
+        let roundStatus = "WAITING";
+        let gameStatus = "WAITING";
+        let guessEndTime = 0;
+        let timerInterval = null;
+        let isFinalizingRound = false;
+        let playerDocExists = false;
+        let lastHistogramRound = null;
+        let roundLimit = Infinity;
+        let summaryHasNextRound = false;
+        let pendingGuessSaveTimeout = null;
+        let currentRoundSubmissions = new Set();
+        let musicEnabled = true;
+        let sfxEnabled = true;
+        let currentMusic = null;
+        let warningBellPlayed = false;
+        const waitingMusic = new Audio("music/Waiting Room Jumps.mp3");
+        waitingMusic.loop = true;
+        waitingMusic.volume = 0.3;
+        const gameMusic = new Audio("music/Quiz Time Thrills.mp3");
+        gameMusic.loop = true;
+        gameMusic.volume = 0.3;
+        const winnerMusic = new Audio("music/Victory Royale.mp3");
+        winnerMusic.loop = true;
+        winnerMusic.volume = 0.35;
+        const submitSfx = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_6f5bdc11b7.mp3?filename=click-124467.mp3");
+        submitSfx.volume = 0.45;
+        const winnerSfx = new Audio("https://cdn.pixabay.com/download/audio/2022/04/25/audio_3b1799d1a3.mp3?filename=success-1-6297.mp3");
+        winnerSfx.volume = 0.6;
+        const warningBellSfx = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_f5df3b3dbe.mp3?filename=bell-notification-126903.mp3");
+        warningBellSfx.volume = 0.6;
+
+        function generateRoomCode() {
+            const min = 10 ** (ROOM_CODE_LENGTH - 1);
+            const max = 10 ** ROOM_CODE_LENGTH - 1;
+            return String(Math.floor(Math.random() * (max - min + 1)) + min);
+        }
+
+        function setActiveGameCode(code) {
+            gameId = code;
+            gameDocRef = doc(db, "artifacts", appId, "public", "data", "rgb_game_state", code);
+            roomCodeDisplay.textContent = code;
+            if (playerRoomCodeDisplay) {
+                playerRoomCodeDisplay.textContent = `Room code: ${code}`;
+                playerRoomCodeDisplay.classList.remove("hidden");
+            }
+        }
+
+        function clearActiveGameCode() {
+            gameId = null;
+            gameDocRef = null;
+            roomCodeDisplay.textContent = "------";
+            playerRoomCodeDisplay?.classList.add("hidden");
+        }
+
+        function showEntryError(message) {
+            if (!entryError) return;
+            entryError.textContent = message;
+            entryError.classList.remove("hidden");
+        }
+
+        function hideEntryError() {
+            entryError?.classList.add("hidden");
+        }
+
+        function getRandomColorValue() {
+            return Math.floor(Math.random() * 256);
+        }
+
+        function calculateScore(rTarget, gTarget, bTarget, rGuess, gGuess, bGuess) {
+            const diffR = Math.abs(rTarget - rGuess);
+            const diffG = Math.abs(gTarget - gGuess);
+            const diffB = Math.abs(bTarget - bGuess);
+            const totalDiff = diffR + diffG + diffB;
+            const maxDiff = 255 * 3;
+            const score = Math.max(0, Math.round(100 * (1 - totalDiff / maxDiff)));
+            return score;
+        }
+
+        function openNicknameModal(prefill = "") {
+            nicknameInput.value = prefill;
+            nicknameError.classList.add("hidden");
+            nicknameModal.classList.remove("hidden");
+            nicknameInput.focus();
+        }
+
+        async function claimUniqueRoomCode() {
+            let attempts = 0;
+            while (attempts < 10) {
+                const candidate = generateRoomCode();
+                const candidateRef = doc(db, "artifacts", appId, "public", "data", "rgb_game_state", candidate);
+                const snapshot = await getDoc(candidateRef);
+                if (!snapshot.exists()) {
+                    setActiveGameCode(candidate);
+                    return candidate;
+                }
+                attempts += 1;
+            }
+            throw new Error("Unable to allocate a room code. Please try again.");
+        }
+
+        function stopAllMusic() {
+            if (currentMusic) {
+                currentMusic.pause();
+            }
+            [waitingMusic, gameMusic, winnerMusic].forEach((audio) => {
+                audio.pause();
+            });
+            currentMusic = null;
+        }
+
+        function tryPlay(audio) {
+            return audio.play().catch(() => false) !== false;
+        }
+
+        function playMusic(track) {
+            if (!musicEnabled || !(isHost || isAdmin) || !track) return;
+            if (currentMusic === track && !track.paused) {
+                return;
+            }
+            if (currentMusic && currentMusic !== track) {
+                currentMusic.pause();
+            }
+            track.play().then(() => {
+                currentMusic = track;
+            }).catch(() => {});
+        }
+
+        function playWaitingMusic() {
+            playMusic(waitingMusic);
+        }
+
+        function playGameMusic() {
+            playMusic(gameMusic);
+        }
+
+        function playWinnerMusic() {
+            playMusic(winnerMusic);
+        }
+
+        async function startHostFlow() {
+            if (!userId) {
+                showEntryError("Still connecting. Please wait a moment and try again.");
+                return;
+            }
+            hideEntryError();
+            hostStartBtn.disabled = true;
+            try {
+                const code = await claimUniqueRoomCode();
+                isHost = true;
+                sessionStorage.setItem("rgbIsHost", "true");
+                await ensureGameStateDocument();
+                await transitionIntoGame();
+                feedbackMessage.textContent = "Set the number of rounds to begin.";
+                playWaitingMusic();
+            } catch (error) {
+                console.error("Host start error:", error);
+                showEntryError(error.message ?? "Unable to create a game. Please try again.");
+                hostStartBtn.disabled = false;
+                clearActiveGameCode();
+                sessionInitialized = false;
+            }
+        }
+
+        async function startJoinFlow() {
+            if (!userId) {
+                showEntryError("Still connecting. Please wait a moment and try again.");
+                return;
+            }
+            const code = (joinCodeInput.value || "").replace(/\D/g, "").slice(0, ROOM_CODE_LENGTH);
+            joinCodeInput.value = code;
+            if (code.length !== ROOM_CODE_LENGTH) {
+                showEntryError("Please enter the six-digit code given by your host.");
+                return;
+            }
+            hideEntryError();
+            joinGameBtn.disabled = true;
+            try {
+                setActiveGameCode(code);
+                const snapshot = await getDoc(gameDocRef);
+                if (!snapshot.exists()) {
+                    showEntryError("Room not found. Double-check the code.");
+                    clearActiveGameCode();
+                    joinGameBtn.disabled = false;
+                    return;
+                }
+                isHost = false;
+                sessionStorage.setItem("rgbIsHost", "false");
+                await transitionIntoGame();
+                feedbackMessage.textContent = "Waiting for the host to start the round.";
+            } catch (error) {
+                console.error("Join error:", error);
+                showEntryError("Unable to join that room. Try again.");
+                joinGameBtn.disabled = false;
+                clearActiveGameCode();
+                sessionInitialized = false;
+            }
+        }
+
+        async function transitionIntoGame() {
+            if (sessionInitialized) return;
+            sessionInitialized = true;
+            entryScreen.classList.add("hidden");
+            gameScreen.classList.remove("hidden");
+            await checkAndSetNickname();
+            listenToPlayers();
+            listenToGameState();
+            listenToGuesses();
+            renderScoreboard();
+            if (isHost) {
+                playWaitingMusic();
+            } else {
+                stopAllMusic();
+            }
+        }
+
+        async function ensureGameStateDocument() {
+            if (!isHost || !userId || !gameDocRef) return;
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const snapshot = await transaction.get(gameDocRef);
+                    if (!snapshot.exists()) {
+                        transaction.set(gameDocRef, {
+                            adminId: userId,
+                            targetColor: { r: 128, g: 128, b: 128 },
+                            round: 0,
+                            roundStatus: "WAITING",
+                            guessEndTime: 0,
+                            timestamp: Date.now(),
+                            gameStatus: "WAITING",
+                            finalStandings: []
+                        });
+                    } else {
+                        const data = snapshot.data();
+                        if (!data.adminId) {
+                            transaction.update(gameDocRef, { adminId: userId });
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Failed to ensure game state:", error);
+            }
+        }
+
+        function updateCurrentColor() {
+            const r = parseInt(redSlider.value, 10);
+            const g = parseInt(greenSlider.value, 10);
+            const b = parseInt(blueSlider.value, 10);
+            redValue.textContent = r;
+            greenValue.textContent = g;
+            blueValue.textContent = b;
+            savePendingGuessDebounced();
+        }
+
+        function savePendingGuessDebounced() {
+            if (isAdmin || !userId || !gameId) return;
+            if (pendingGuessSaveTimeout) {
+                clearTimeout(pendingGuessSaveTimeout);
+            }
+            pendingGuessSaveTimeout = setTimeout(async () => {
+                try {
+                    await setDoc(doc(playersCollectionRef, `${gameId}-${userId}`), {
+                        pendingGuessR: parseInt(redSlider.value, 10),
+                        pendingGuessG: parseInt(greenSlider.value, 10),
+                        pendingGuessB: parseInt(blueSlider.value, 10),
+                        timestamp: Date.now()
+                    }, { merge: true });
+                } catch (error) {
+                    console.error("Failed to save pending guess:", error);
+                }
+            }, 400);
+        }
+
+        function updateDemoPreview() {
+            if (!demoPreview) return;
+            const r = parseInt(demoRedSlider.value, 10);
+            const g = parseInt(demoGreenSlider.value, 10);
+            const b = parseInt(demoBlueSlider.value, 10);
+            const rgb = `rgb(${r}, ${g}, ${b})`;
+            demoPreview.style.background = rgb;
+            if (demoPreviewLabel) {
+                demoPreviewLabel.textContent = `RGB(${r}, ${g}, ${b})`;
+            }
+        }
+
+        function updatePracticePreview() {
+            if (!practicePreview) return;
+            const r = parseInt(practiceRedSlider.value, 10);
+            const g = parseInt(practiceGreenSlider.value, 10);
+            const b = parseInt(practiceBlueSlider.value, 10);
+            const rgb = `rgb(${r}, ${g}, ${b})`;
+            practicePreview.style.background = rgb;
+            if (practicePreviewLabel) {
+                practicePreviewLabel.textContent = `RGB(${r}, ${g}, ${b})`;
+            }
+        }
+
+        function playSfx(audio) {
+            if (!sfxEnabled || !audio || !(isHost || isAdmin)) return;
+            const instance = audio.cloneNode(true);
+            instance.volume = audio.volume;
+            instance.play().catch(() => {});
+        }
+
+        function checkForAutoFinalize() {
+            if (!isAdmin || roundStatus !== "GUESSING" || isFinalizingRound) return;
+            const activePlayers = Object.values(allPlayersData).filter((player) => player && !player.isHost);
+            if (activePlayers.length === 0) return;
+            const everyoneSubmitted = activePlayers.every((player) => currentRoundSubmissions.has(player.userId));
+            if (everyoneSubmitted) {
+                finalizeRound();
+            }
+        }
+
+        function renderScoreboard() {
+            const players = Object.values(allPlayersData).filter((player) => !player?.isHost);
+            if (players.length === 0) {
+                guessesTableBody.innerHTML = `<tr class="text-center"><td colspan="2" class="py-4 text-gray-400">No players yet.</td></tr>`;
+                if (hostScoreboardList) {
+                    hostScoreboardList.innerHTML = `<li class="text-center text-gray-500">No players yet.</li>`;
+                }
+                return;
+            }
+            players.sort((a, b) => Number(b.totalScore ?? 0) - Number(a.totalScore ?? 0));
+            guessesTableBody.innerHTML = players
+                .map((player) => {
+                    const nickname = player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Unknown");
+                    const totalScore = Number(player.totalScore ?? 0);
+                    const highlight = player.userId === userId ? "bg-cyan-900/40" : "bg-gray-700 hover:bg-gray-600";
+                    return `
+                        <tr class="${highlight}">
+                            <td class="px-3 py-2 text-sm font-medium text-white">${nickname}</td>
+                            <td class="px-3 py-2 text-right text-sm text-gray-200">${totalScore}</td>
+                        </tr>
+                    `;
+                })
+                .join("");
+            if (hostScoreboardList) {
+                hostScoreboardList.innerHTML = players
+                    .map((player, index) => {
+                        const nickname = player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Unknown");
+                        const totalScore = Number(player.totalScore ?? 0);
+                        return `
+                            <li class="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-700 bg-gray-900/60">
+                                <span class="text-sm text-gray-200">#${index + 1} ${nickname}</span>
+                                <span class="text-sm font-semibold text-cyan-300">${totalScore}</span>
+                            </li>
+                        `;
+                    })
+                    .join("");
+            }
+
+            if (winnerAnnouncement.dataset.mode === "game") {
+                winnerAnnouncement.classList.add("hidden");
+                delete winnerAnnouncement.dataset.mode;
+            }
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function startTimer() {
+            stopTimer();
+            timerInterval = setInterval(async () => {
+            const timeLeft = guessEndTime - Date.now();
+            const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
+            if (!warningBellPlayed && isAdmin && secondsLeft <= 10 && secondsLeft > 0) {
+                playSfx(warningBellSfx);
+                warningBellPlayed = true;
+            }
+            if (secondsLeft <= 0) {
+                stopTimer();
+                if (isAdmin) {
+                    feedbackMessage.textContent = "Time is up! Finalizing results...";
+                    await finalizeRound();
+                } else {
+                    feedbackMessage.textContent = "Time is up! Waiting for the host to reveal results.";
+                    if (!hasGuessed && roundStatus === "GUESSING") {
+                        submitGuess(true).catch((error) => console.error("Auto-submit failed:", error));
+                    }
+                }
+            } else {
+                feedbackMessage.textContent = `Hurry! ${secondsLeft} seconds left to submit your guess.`;
+                feedbackMessage.className = `h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white ${secondsLeft <= 10 ? "bg-red-800/50" : "bg-teal-600/50"}`;
+            }
+            }, 1000);
+        }
+
+        function updateUIForRoleAndStatus() {
+            roleDisplay.textContent = isAdmin ? "Host" : "Player";
+            userIdDisplay.textContent = playerNickname || (userId ? `${userId.slice(0, 8)}...` : "Loading...");
+
+            const isGuessingActive = roundStatus === "GUESSING" && !hasGuessed && guessEndTime > Date.now();
+            const allowGuessing = isGuessingActive && !isAdmin;
+            redSlider.disabled = !allowGuessing;
+            greenSlider.disabled = !allowGuessing;
+            blueSlider.disabled = !allowGuessing;
+            submitGuessBtn.disabled = !allowGuessing;
+            playerActionBtns.classList.toggle("hidden", isAdmin);
+
+            if (isGuessingActive && !isAdmin) {
+                submitGuessBtn.textContent = "Submit guess";
+            } else if (roundStatus === "GUESSING" && hasGuessed) {
+                submitGuessBtn.textContent = "Guess submitted (waiting...)";
+            } else if (isAdmin) {
+                submitGuessBtn.textContent = "Hosts do not submit guesses";
+            } else {
+                submitGuessBtn.textContent = "Guesses are locked right now";
+            }
+
+            const isPreGame = roundStatus === "WAITING" && currentRound === 0;
+            targetColorWrapper?.classList.toggle("hidden", isPreGame);
+            roomCodeWrapper?.classList.toggle("hidden", !isPreGame);
+            if (playerRoomCodeDisplay) {
+                playerRoomCodeDisplay.classList.toggle("hidden", !isPreGame);
+            }
+
+            if (isAdmin) {
+                guessControls.classList.remove("hidden");
+                startNewRoundBtn.classList.toggle("hidden", isPreGame);
+                waitingRoomDemo?.classList.toggle("hidden", !isPreGame);
+
+                if (!isPreGame) {
+                    if (roundStatus === "GUESSING") {
+                        startNewRoundBtn.textContent = "Waiting for submissions...";
+                        startNewRoundBtn.disabled = true;
+                        startNewRoundBtn.classList.add("opacity-60");
+                    } else if (roundStatus === "SCORED") {
+                        startNewRoundBtn.textContent = currentRound >= roundLimit ? "Game complete" : "Start next round";
+                        startNewRoundBtn.disabled = currentRound >= roundLimit;
+                        startNewRoundBtn.classList.remove("opacity-60");
+                    } else {
+                        startNewRoundBtn.textContent = "Start first round";
+                        startNewRoundBtn.disabled = false;
+                        startNewRoundBtn.classList.remove("opacity-60");
+                    }
+                }
+            } else {
+                guessControls.classList.remove("hidden");
+                startNewRoundBtn.classList.add("hidden");
+                waitingRoomDemo?.classList.add("hidden");
+            }
+            if (!isAdmin) {
+                guessControls.classList.toggle("hidden", isPreGame);
+                playerActionBtns.classList.toggle("hidden", isPreGame);
+                practiceBoard?.classList.toggle("hidden", !isPreGame);
+            } else {
+                practiceBoard?.classList.add("hidden");
+            }
+
+            hostPanel.classList.toggle("hidden", !isAdmin);
+            playerPanel.classList.toggle("hidden", isAdmin);
+            playerInfoWrapper.classList.toggle("hidden", isAdmin);
+            if (showWinnerBtn) {
+                const canShowWinner = isAdmin && gameStatus === "AWAITING_WINNER";
+                showWinnerBtn.classList.toggle("hidden", !canShowWinner);
+                showWinnerBtn.disabled = !canShowWinner;
+            }
+        }
+
+        function showHistogram(results) {
+            lastHistogramRound = currentRound;
+            const hasMoreRounds = Number.isFinite(roundLimit) ? currentRound < roundLimit : true;
+            summaryHasNextRound = hasMoreRounds;
+            if (isAdmin) {
+                overlayNextRoundBtn.textContent = "Close summary";
+                overlayNextRoundBtn.classList.remove("hidden");
+                overlayWaitingMsg.textContent = hasMoreRounds
+                    ? "Use the host panel to start the next round when you're ready."
+                    : "This was the final round. When you close this summary the winner screen will appear.";
+                overlayWaitingMsg.classList.remove("hidden");
+            } else {
+                overlayNextRoundBtn.classList.add("hidden");
+                overlayWaitingMsg.textContent = hasMoreRounds
+                    ? "Waiting for host to start next round..."
+                    : "Game complete. Waiting for host to reveal the winner.";
+                overlayWaitingMsg.classList.remove("hidden");
+            }
+
+            if (!results || results.length === 0) {
+                histogramContainer.innerHTML = `<p class="text-gray-300 text-sm w-full text-center">No scores available for this round.</p>`;
+                roundSummaryColors.innerHTML = `
+                    <div class="text-center text-xs text-gray-400">No guesses have been recorded yet.</div>
+                `;
+            } else {
+                const maxScore = Math.max(...results.map((r) => r.score ?? 0), 1);
+                const barWidth = Math.max(48, Math.floor(300 / Math.max(results.length, 1)));
+                const columnHeight = 200;
+                const histogramData = results.slice(0, 8);
+                histogramContainer.innerHTML = histogramData
+                    .map((result) => {
+                        const score = result.score ?? 0;
+                        const nickname = result.nickname ?? (result.userId ? `${result.userId.slice(0, 8)}...` : "Player");
+                        const barHeight = Math.max(12, Math.round((score / maxScore) * columnHeight));
+                        const barColor = `rgb(${result.r}, ${result.g}, ${result.b})`;
+                        return `
+                            <div class="flex flex-col items-center justify-end" style="width:${barWidth}px">
+                                <div class="flex items-end justify-center w-full" style="height:${columnHeight}px">
+                                    <div class="w-8 rounded-t-md shadow-lg border border-gray-300/40" style="height:${barHeight}px; background:${barColor};"></div>
+                                </div>
+                                <div class="mt-2 text-xs text-gray-200 leading-tight text-center overflow-hidden text-ellipsis whitespace-nowrap w-full">${nickname}</div>
+                                <div class="text-[10px] text-gray-400 leading-tight text-center whitespace-nowrap">RGB(${result.r}, ${result.g}, ${result.b})</div>
+                                <div class="text-xs font-semibold text-teal-300">${score}</div>
+                            </div>
+                        `;
+                    })
+                    .join("");
+
+                const leaderboardEntries = Object.values(allPlayersData)
+                    .filter((player) => player && !player.isHost)
+                    .map((player) => ({
+                        nickname: player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Player"),
+                        totalScore: Number(player.totalScore ?? 0)
+                    }))
+                    .sort((a, b) => b.totalScore - a.totalScore);
+
+                const leaderboardHtml = leaderboardEntries.length
+                    ? leaderboardEntries.slice(0, 8)
+                          .map((entry, index) => `
+                            <div class="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-700 bg-gray-900/60 text-sm text-gray-200">
+                                <span>#${index + 1} ${entry.nickname}</span>
+                                <span class="font-semibold text-cyan-300">${entry.totalScore}</span>
+                            </div>
+                        `)
+                          .join("")
+                    : `<div class="text-sm text-gray-400 text-center">No leaderboard data yet.</div>`;
+
+                roundSummaryColors.innerHTML = `
+                    <div class="space-y-5">
+                        <div class="flex items-center justify-between rounded-xl border border-gray-600 bg-gray-900/60 px-4 py-3">
+                            <div>
+                                <p class="text-xs uppercase tracking-widest text-gray-400">Target</p>
+                                <p class="text-sm text-gray-200 font-semibold">RGB(${targetColor.r}, ${targetColor.g}, ${targetColor.b})</p>
+                            </div>
+                            <div class="w-16 h-8 rounded border border-gray-500" style="background-color: rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b});"></div>
+                        </div>
+
+                        <div>
+                            <h5 class="text-sm font-semibold text-gray-200 mb-2">Total leaderboard</h5>
+                            <div class="space-y-2 max-h-48 overflow-y-auto">
+                                ${leaderboardHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            summaryHasNextRound = hasMoreRounds;
+            if (isAdmin) {
+                overlayNextRoundBtn.textContent = hasMoreRounds ? "Start next round" : "Close summary";
+                overlayNextRoundBtn.classList.remove("hidden");
+                overlayWaitingMsg.classList.add("hidden");
+            } else {
+                overlayNextRoundBtn.classList.add("hidden");
+                overlayWaitingMsg.textContent = hasMoreRounds ? "Waiting for host to start next round..." : "Game complete. Waiting for host.";
+                overlayWaitingMsg.classList.remove("hidden");
+            }
+
+            roundOverlay.classList.remove("hidden");
+            roundOverlay.classList.add("flex");
+        }
+
+        async function submitGuess(isAuto = false) {
+            if (!userId) {
+                feedbackMessage.textContent = "Please wait until you are signed in.";
+                return;
+            }
+            if (isAdmin) {
+                feedbackMessage.textContent = "Hosts do not submit guesses.";
+                return;
+            }
+            if (roundStatus !== "GUESSING" || hasGuessed || guessEndTime <= Date.now()) {
+                feedbackMessage.textContent = "Guesses are closed for this round.";
+                return;
+            }
+
+            const guess = {
+                userId,
+                r: parseInt(redSlider.value, 10),
+                g: parseInt(greenSlider.value, 10),
+                b: parseInt(blueSlider.value, 10),
+                round: currentRound,
+                gameId,
+                timestamp: Date.now()
+            };
+
+            try {
+                await setDoc(doc(guessesCollectionRef, `${gameId}-${userId}-${currentRound}`), guess);
+                await setDoc(doc(playersCollectionRef, `${gameId}-${userId}`), {
+                    pendingGuessR: guess.r,
+                    pendingGuessG: guess.g,
+                    pendingGuessB: guess.b,
+                    lastGuessR: guess.r,
+                    lastGuessG: guess.g,
+                    lastGuessB: guess.b,
+                    timestamp: Date.now()
+                }, { merge: true });
+                hasGuessed = true;
+                if (!isAuto) {
+                    feedbackMessage.textContent = "Your guess was submitted!";
+                    playSfx(submitSfx);
+                }
+            } finally {
+                updateUIForRoleAndStatus();
+            }
+        }
+
+        async function checkAndSetNickname() {
+            const playerDocRef = doc(playersCollectionRef, `${gameId}-${userId}`);
+            try {
+                const snapshot = await getDoc(playerDocRef);
+                if (snapshot.exists()) {
+                    playerDocExists = true;
+                    const data = snapshot.data();
+                    if (isHost && !data.isHost) {
+                        await setDoc(playerDocRef, { isHost: true }, { merge: true });
+                        data.isHost = true;
+                    }
+                    playerNickname = data.nickname;
+                    userIdDisplay.textContent = playerNickname;
+                    nicknameInput.value = playerNickname ?? "";
+                    changeNicknameBtn.classList.toggle("hidden", isHost);
+                    nicknameModal.classList.add("hidden");
+                } else {
+                    playerDocExists = false;
+                    if (isHost) {
+                        const hostName = "Host";
+                        await setDoc(playerDocRef, {
+                            nickname: hostName,
+                            userId,
+                            gameId,
+                            totalScore: 0,
+                            lastScore: 0,
+                             pendingGuessR: 128,
+                             pendingGuessG: 128,
+                             pendingGuessB: 128,
+                             lastGuessR: 128,
+                             lastGuessG: 128,
+                             lastGuessB: 128,
+                            timestamp: Date.now(),
+                            isHost: true
+                        });
+                        playerNickname = hostName;
+                        userIdDisplay.textContent = playerNickname;
+                        nicknameModal.classList.add("hidden");
+                    } else {
+                        changeNicknameBtn.classList.add("hidden");
+                        openNicknameModal();
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking nickname:", error);
+            }
+        }
+
+        async function saveNickname() {
+            const nickname = nicknameInput.value.trim();
+            if (nickname.length < 2 || nickname.length > 15) {
+                nicknameError.classList.remove("hidden");
+                return;
+            }
+            nicknameError.classList.add("hidden");
+            saveNicknameBtn.disabled = true;
+
+            try {
+                const dataToSet = {
+                    nickname,
+                    userId,
+                    gameId,
+                    timestamp: Date.now()
+                };
+                if (!playerDocExists) {
+                    dataToSet.totalScore = 0;
+                    dataToSet.lastScore = 0;
+                    dataToSet.pendingGuessR = 128;
+                    dataToSet.pendingGuessG = 128;
+                    dataToSet.pendingGuessB = 128;
+                    dataToSet.lastGuessR = 128;
+                    dataToSet.lastGuessG = 128;
+                    dataToSet.lastGuessB = 128;
+                }
+                await setDoc(doc(playersCollectionRef, `${gameId}-${userId}`), dataToSet, { merge: true });
+                playerDocExists = true;
+                playerNickname = nickname;
+                userIdDisplay.textContent = playerNickname;
+                changeNicknameBtn.classList.remove("hidden");
+                nicknameModal.classList.add("hidden");
+            } catch (error) {
+                console.error("Error saving nickname:", error);
+                nicknameError.textContent = "Unable to save nickname. Try again.";
+                nicknameError.classList.remove("hidden");
+            } finally {
+                saveNicknameBtn.disabled = false;
+            }
+        }
+
+        function listenToPlayers() {
+            if (!gameId) return;
+            const playersQuery = query(playersCollectionRef, where("gameId", "==", gameId));
+            onSnapshot(playersQuery, (snapshot) => {
+                const data = {};
+                snapshot.forEach((docSnap) => {
+                    const player = docSnap.data();
+                    if (!player.userId) {
+                        player.userId = player.userId ?? docSnap.id.replace(`${gameId}-`, "");
+                    }
+                    data[player.userId] = player;
+                });
+                allPlayersData = data;
+                renderScoreboard();
+                updateUIForRoleAndStatus();
+                checkForAutoFinalize();
+            });
+        }
+
+        function listenToGuesses() {
+            if (!gameId) return;
+            const guessesQuery = query(guessesCollectionRef, where("gameId", "==", gameId));
+            onSnapshot(guessesQuery, (snapshot) => {
+                let myGuessFound = false;
+                const submissions = new Set();
+                snapshot.forEach((docSnap) => {
+                    const guess = docSnap.data();
+                    if (guess.round === currentRound) {
+                        submissions.add(guess.userId);
+                        if (guess.userId === userId) {
+                            myGuessFound = true;
+                        }
+                    }
+                });
+                currentRoundSubmissions = submissions;
+                hasGuessed = myGuessFound;
+                updateUIForRoleAndStatus();
+                checkForAutoFinalize();
+            });
+        }
+
+        function listenToGameState() {
+            if (!gameDocRef) return;
+            onSnapshot(gameDocRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    if (isHost) {
+                        ensureGameStateDocument();
+                    } else {
+                        feedbackMessage.textContent = "Waiting for the host to create the game...";
+                    }
+                    return;
+                }
+
+                const data = docSnap.data();
+                isAdmin = userId === data.adminId;
+                targetColor = data.targetColor;
+                const incomingRound = data.round ?? 0;
+                if (incomingRound !== currentRound) {
+                    currentRound = incomingRound;
+                    currentRoundSubmissions = new Set();
+                    hasGuessed = false;
+                    warningBellPlayed = false;
+                } else {
+                    currentRound = incomingRound;
+                }
+                roundStatus = data.roundStatus;
+                gameStatus = data.gameStatus ?? "WAITING";
+                if (gameStatus === "AWAITING_WINNER" && (isHost || isAdmin)) {
+                    playWinnerMusic();
+                }
+                guessEndTime = data.guessEndTime ?? 0;
+                if (data.gameStatus === "SHOW_WINNER") {
+                    if (isHost || isAdmin) {
+                        stopAllMusic();
+                    }
+                    window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
+                    return;
+                }
+                if (typeof data.roundLimit === "number" && data.roundLimit > 0) {
+                    roundLimit = data.roundLimit;
+                }
+                roundTotalDisplay.textContent = Number.isFinite(roundLimit) ? roundLimit : "∞";
+
+                targetColorBox.style.backgroundColor = `rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
+                roundNumberDisplay.textContent = currentRound;
+                const displayedResultsRound = roundStatus === "GUESSING" ? Math.max(currentRound - 1, 0) : currentRound;
+                resultsRoundNumberDisplay.textContent = displayedResultsRound;
+                hostRoundNumberDisplay.textContent = Math.max(currentRound, 1);
+                correctAnswer.textContent = `Correct color: RGB(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
+
+                if (roundStatus === "GUESSING") {
+                    correctAnswer.classList.add("hidden");
+                    winnerAnnouncement.classList.add("hidden");
+                    roundOverlay.classList.add("hidden");
+                    roundOverlay.classList.remove("flex");
+                    if (isAdmin) {
+                        feedbackMessage.textContent = "Round in progress. End the round whenever you're ready.";
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-cyan-700/60";
+                        playWaitingMusic();
+                    } else {
+                        feedbackMessage.textContent = "Adjust the sliders and submit your guess!";
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-teal-600/50";
+                    }
+                    startTimer();
+                    playGameMusic();
+                } else if (roundStatus === "SCORED") {
+                    stopTimer();
+                    feedbackMessage.textContent = "Round finished! Scores have been calculated.";
+                    feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-yellow-600";
+                    correctAnswer.classList.remove("hidden");
+                if (Array.isArray(data.lastRoundResults) && data.round !== lastHistogramRound) {
+                    showHistogram(data.lastRoundResults);
+                }
+            } else {
+                stopTimer();
+                correctAnswer.classList.add("hidden");
+                    winnerAnnouncement.classList.add("hidden");
+                    if (isAdmin) {
+                        if (!Number.isFinite(roundLimit)) {
+                            feedbackMessage.textContent = "Set the number of rounds to begin.";
+                            roundConfig.classList.remove("hidden");
+                            startNewRoundBtn.disabled = true;
+                        } else {
+                            roundConfig.classList.add("hidden");
+                            feedbackMessage.textContent = currentRound >= roundLimit ? "Game complete." : "Click \"Start first round\" when you are ready.";
+                            startNewRoundBtn.disabled = currentRound >= roundLimit;
+                        }
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-cyan-700/60";
+                    } else {
+                        roundConfig.classList.add("hidden");
+                        feedbackMessage.textContent = "Waiting for the host to start the round.";
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-gray-700/50";
+                    }
+                }
+
+                hasGuessed = false;
+                updateUIForRoleAndStatus();
+            }, (error) => {
+                console.error("Error listening to game state:", error);
+                feedbackMessage.textContent = "Connection problem. Please refresh.";
+            });
+        }
+
+        async function finalizeRound() {
+            if (!isAdmin || roundStatus !== "GUESSING" || isFinalizingRound) return;
+            isFinalizingRound = true;
+            try {
+                const guessesSnapshot = await getDocs(query(guessesCollectionRef, where("gameId", "==", gameId), where("round", "==", currentRound)));
+                const results = [];
+                const roundDeadline = guessEndTime || Date.now();
+                const computeBonus = (timestamp) => {
+                    const msRemaining = Math.max(0, roundDeadline - timestamp);
+                    return Math.min(10, Math.floor(msRemaining / 3000));
+                };
+                const batch = writeBatch(db);
+                guessesSnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const score = calculateScore(targetColor.r, targetColor.g, targetColor.b, data.r, data.g, data.b);
+                    const guessTimestamp = data.timestamp ?? Date.now();
+                    const bonus = computeBonus(guessTimestamp);
+                    const totalScoreForRound = score + bonus;
+                    results.push({
+                        userId: data.userId,
+                        nickname: allPlayersData[data.userId]?.nickname ?? `${data.userId.slice(0, 8)}...`,
+                        score,
+                        bonus,
+                        totalScore: totalScoreForRound,
+                        r: data.r,
+                        g: data.g,
+                        b: data.b,
+                        timestamp: guessTimestamp
+                    });
+                    batch.update(docSnap.ref, { score });
+                });
+
+                const participantIds = new Set(results.map((r) => r.userId));
+                Object.values(allPlayersData).forEach((player) => {
+                    if (!player || !player.userId || player.isHost || participantIds.has(player.userId)) return;
+                    const fallback = {
+                        r: Number.isFinite(player.pendingGuessR) ? Number(player.pendingGuessR) : Number.isFinite(player.lastGuessR) ? Number(player.lastGuessR) : 128,
+                        g: Number.isFinite(player.pendingGuessG) ? Number(player.pendingGuessG) : Number.isFinite(player.lastGuessG) ? Number(player.lastGuessG) : 128,
+                        b: Number.isFinite(player.pendingGuessB) ? Number(player.pendingGuessB) : Number.isFinite(player.lastGuessB) ? Number(player.lastGuessB) : 128
+                    };
+                    const autoTimestamp = Date.now();
+                    const score = calculateScore(targetColor.r, targetColor.g, targetColor.b, fallback.r, fallback.g, fallback.b);
+                    const bonus = 0;
+                    const totalScoreForRound = score + bonus;
+                    const autoPayload = {
+                        userId: player.userId,
+                        gameId,
+                        round: currentRound,
+                        r: fallback.r,
+                        g: fallback.g,
+                        b: fallback.b,
+                        timestamp: autoTimestamp,
+                        autoFilled: true,
+                        score,
+                        bonus
+                    };
+                    batch.set(doc(guessesCollectionRef, `${gameId}-${player.userId}-${currentRound}`), autoPayload, { merge: true });
+                    results.push({
+                        userId: player.userId,
+                        nickname: player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Player"),
+                        score,
+                        bonus,
+                        totalScore: totalScoreForRound,
+                        r: fallback.r,
+                        g: fallback.g,
+                        b: fallback.b,
+                        timestamp: autoTimestamp,
+                        autoFilled: true
+                    });
+                    participantIds.add(player.userId);
+                });
+
+                results.forEach((result) => {
+                    const playerNicknameFromMemory = allPlayersData[result.userId]?.nickname;
+                    batch.set(doc(playersCollectionRef, `${gameId}-${result.userId}`), {
+                        userId: result.userId,
+                        gameId,
+                        nickname: playerNicknameFromMemory ?? result.nickname ?? (result.userId ? `${result.userId.slice(0, 8)}...` : "Player"),
+                        totalScore: increment(result.totalScore),
+                        lastScore: result.totalScore,
+                        lastGuessR: result.r,
+                        lastGuessG: result.g,
+                        lastGuessB: result.b,
+                        timestamp: Date.now()
+                    }, { merge: true });
+                });
+
+                if (results.length === 0) {
+                    await setDoc(gameDocRef, { roundStatus: "SCORED", guessEndTime: Date.now(), timestamp: Date.now(), lastRoundResults: [] }, { merge: true });
+                    winnerAnnouncement.textContent = "No guesses were submitted this round.";
+                    winnerAnnouncement.dataset.mode = "round";
+                    winnerAnnouncement.classList.remove("hidden");
+                    showHistogram([]);
+                    isFinalizingRound = false;
+                    return;
+                }
+
+                results.sort((a, b) => b.totalScore - a.totalScore || a.timestamp - b.timestamp);
+                const winner = results[0];
+                const historyDocRef = doc(roundHistoryCollectionRef, `${gameId}-${currentRound}`);
+                batch.set(historyDocRef, {
+                    gameId,
+                    round: currentRound,
+                    winner,
+                    topResults: results.slice(0, 10),
+                    timestamp: Date.now()
+                });
+
+                const projectedTotals = {};
+                Object.values(allPlayersData).forEach((player) => {
+                    if (!player || player.isHost) return;
+                    projectedTotals[player.userId] = {
+                        userId: player.userId,
+                        nickname: player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Player"),
+                        totalScore: Number(player.totalScore ?? 0)
+                    };
+                });
+                results.forEach((r) => {
+                    if (!projectedTotals[r.userId]) {
+                        projectedTotals[r.userId] = {
+                            userId: r.userId,
+                            nickname: r.nickname ?? (r.userId ? `${r.userId.slice(0, 8)}...` : "Player"),
+                            totalScore: 0
+                        };
+                    }
+                    projectedTotals[r.userId].totalScore = Number(projectedTotals[r.userId].totalScore ?? 0) + Number(r.totalScore ?? r.score ?? 0);
+                });
+                const finalStandings = Object.values(projectedTotals).sort((a, b) => b.totalScore - a.totalScore);
+                const topThree = finalStandings.slice(0, 3);
+
+                const gameUpdate = {
+                    roundStatus: "SCORED",
+                    guessEndTime: Date.now(),
+                    timestamp: Date.now(),
+                    lastRoundResults: results
+                };
+                if (Number.isFinite(roundLimit)) {
+                    gameUpdate.roundsRemaining = Math.max(0, roundLimit - currentRound);
+                    gameUpdate.roundLimit = roundLimit;
+                    if (gameUpdate.roundsRemaining <= 0) {
+                        gameUpdate.finalStandings = finalStandings;
+                        gameUpdate.gameStatus = "AWAITING_WINNER";
+                    } else {
+                        gameUpdate.gameStatus = "RUNNING";
+                    }
+                } else {
+                    gameUpdate.gameStatus = "RUNNING";
+                }
+                batch.set(gameDocRef, gameUpdate, { merge: true });
+                await batch.commit();
+                await pruneRoundHistory();
+
+                winnerAnnouncement.textContent = `Round ${currentRound} winner: ${winner.nickname} with ${winner.totalScore} pts (bonus +${winner.bonus ?? 0}).`;
+                winnerAnnouncement.dataset.mode = "round";
+                winnerAnnouncement.classList.remove("hidden");
+                showHistogram(results);
+                playSfx(winnerSfx);
+                if (Number.isFinite(roundLimit) && roundLimit - currentRound <= 0) {
+                    roundOverlay.classList.add("hidden");
+                    roundOverlay.classList.remove("flex");
+                    await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
+                    playWinnerMusic();
+                    window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
+                    return;
+                }
+            } catch (error) {
+                console.error("Error finalizing round:", error);
+                feedbackMessage.textContent = `Error finalizing round: ${error.message}`;
+            } finally {
+                isFinalizingRound = false;
+            }
+        }
+
+        async function pruneRoundHistory() {
+            try {
+                const historySnapshot = await getDocs(query(roundHistoryCollectionRef, where("gameId", "==", gameId), orderBy("round", "desc")));
+                let index = 0;
+                const batch = writeBatch(db);
+                historySnapshot.forEach((docSnap) => {
+                    index += 1;
+                    if (index > 10) {
+                        batch.delete(docSnap.ref);
+                    }
+                });
+                if (index > 10) {
+                    await batch.commit();
+                }
+            } catch (error) {
+                console.error("Error pruning round history:", error);
+            }
+        }
+
+        async function startNextRound() {
+            if (!Number.isFinite(roundLimit)) {
+                feedbackMessage.textContent = "Set the number of rounds before starting.";
+                return;
+            }
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const snapshot = await transaction.get(gameDocRef);
+                    if (!snapshot.exists()) {
+                        throw new Error("Game state does not exist yet.");
+                    }
+                    const data = snapshot.data();
+                    const nextRound = (data.round ?? 0) + 1;
+                    const newTarget = { r: getRandomColorValue(), g: getRandomColorValue(), b: getRandomColorValue() };
+                    const newGuessEndTime = Date.now() + GUESS_TIME_LIMIT_MS;
+                    const gameUpdate = {
+                        adminId: userId,
+                        targetColor: newTarget,
+                        round: nextRound,
+                        roundStatus: "GUESSING",
+                        guessEndTime: newGuessEndTime,
+                        timestamp: Date.now(),
+                        lastRoundResults: [],
+                        finalStandings: [],
+                        gameStatus: "RUNNING"
+                    };
+                    if (Number.isFinite(roundLimit)) {
+                        gameUpdate.roundLimit = roundLimit;
+                        gameUpdate.roundsRemaining = Math.max(0, roundLimit - nextRound);
+                    }
+                    transaction.set(gameDocRef, gameUpdate);
+                });
+                hasGuessed = false;
+                winnerAnnouncement.classList.add("hidden");
+                roundOverlay.classList.add("hidden");
+                roundOverlay.classList.remove("flex");
+            } catch (error) {
+                console.error("Error starting next round:", error);
+                feedbackMessage.textContent = `Error starting round: ${error.message}`;
+                throw error;
+            }
+        }
+
+        setPersistence(auth, browserSessionPersistence)
+            .then(() => {
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        hideEntryError();
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                });
+            })
+            .catch((error) => {
+                console.error("Error setting persistence or signing in:", error);
+                feedbackMessage.textContent = `Authentication error: ${error.message}`;
+            });
+
+        hostStartBtn?.addEventListener("click", startHostFlow);
+        joinGameBtn?.addEventListener("click", startJoinFlow);
+        joinCodeInput?.addEventListener("keyup", (event) => {
+            if (event.key === "Enter") {
+                startJoinFlow();
+            }
+        });
+        redSlider.addEventListener("input", updateCurrentColor);
+        greenSlider.addEventListener("input", updateCurrentColor);
+        blueSlider.addEventListener("input", updateCurrentColor);
+        demoRedSlider?.addEventListener("input", updateDemoPreview);
+        demoGreenSlider?.addEventListener("input", updateDemoPreview);
+        demoBlueSlider?.addEventListener("input", updateDemoPreview);
+        updateDemoPreview();
+        practiceRedSlider?.addEventListener("input", updatePracticePreview);
+        practiceGreenSlider?.addEventListener("input", updatePracticePreview);
+        practiceBlueSlider?.addEventListener("input", updatePracticePreview);
+        updatePracticePreview();
+        submitGuessBtn.addEventListener("click", () => submitGuess(false));
+        startNewRoundBtn.addEventListener("click", async () => {
+            startNewRoundBtn.disabled = true;
+            if (!isAdmin) {
+                feedbackMessage.textContent = "Only the host can control rounds.";
+                startNewRoundBtn.disabled = false;
+                return;
+            }
+            if (roundStatus === "GUESSING") {
+                await finalizeRound();
+            } else {
+                await startNextRound();
+            }
+            startNewRoundBtn.disabled = false;
+        });
+        overlayNextRoundBtn.addEventListener("click", async () => {
+            if (!isAdmin) return;
+            overlayNextRoundBtn.disabled = true;
+            try {
+                roundOverlay.classList.add("hidden");
+                roundOverlay.classList.remove("flex");
+                if (summaryHasNextRound) {
+                    await startNextRound();
+                    playGameMusic();
+                } else {
+                    await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
+                    playWinnerMusic();
+                    window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
+                }
+            } finally {
+                overlayNextRoundBtn.disabled = false;
+            }
+        });
+
+        showWinnerBtn?.addEventListener("click", async () => {
+            if (!isAdmin) return;
+            showWinnerBtn.disabled = true;
+            try {
+                await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
+                roundOverlay.classList.add("hidden");
+                roundOverlay.classList.remove("flex");
+                playWinnerMusic();
+            } finally {
+                showWinnerBtn.disabled = false;
+            }
+        });
+
+        saveNicknameBtn.addEventListener("click", saveNickname);
+        cancelNicknameBtn.addEventListener("click", () => {
+            nicknameModal.classList.add("hidden");
+            nicknameError.classList.add("hidden");
+            nicknameInput.value = playerNickname || "";
+        });
+        changeNicknameBtn.addEventListener("click", () => openNicknameModal(playerNickname || ""));
+
+        confirmRoundCountBtn.addEventListener("click", async () => {
+            const desiredRounds = parseInt(roundCountInput.value, 10);
+            if (Number.isNaN(desiredRounds) || desiredRounds < 1 || desiredRounds > 99) {
+                roundCountError.classList.remove("hidden");
+                return;
+            }
+            roundCountError.classList.add("hidden");
+            const previousLimit = roundLimit;
+            roundLimit = desiredRounds;
+            roundTotalDisplay.textContent = roundLimit;
+            feedbackMessage.textContent = "Starting the game...";
+            confirmRoundCountBtn.disabled = true;
+            let startError = null;
+            try {
+                await startNextRound();
+                roundConfig.classList.add("hidden");
+                waitingRoomDemo?.classList.add("hidden");
+                feedbackMessage.textContent = "Round in progress. End the round whenever you're ready.";
+            } catch (error) {
+                startError = error;
+                roundLimit = previousLimit;
+                roundTotalDisplay.textContent = Number.isFinite(previousLimit) ? previousLimit : "∞";
+                roundConfig.classList.remove("hidden");
+                waitingRoomDemo?.classList.remove("hidden");
+            } finally {
+                confirmRoundCountBtn.disabled = false;
+                if (startError) {
+                    const message = startError?.message ? `Could not start: ${startError.message}` : "Could not start. Please try again.";
+                    feedbackMessage.textContent = message;
+                }
+            }
+        });
+
+        renderScoreboard();
+        updateCurrentColor();
+
+    </script>
+</body>
+</html>
