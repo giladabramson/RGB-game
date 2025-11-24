@@ -1213,7 +1213,14 @@
                     feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-yellow-600";
                     correctAnswer.classList.remove("hidden");
                 if (Array.isArray(data.lastRoundResults) && data.round !== lastHistogramRound) {
-                    showHistogram(data.lastRoundResults);
+                    const isFinal = data.gameStatus === "AWAITING_WINNER" || (Number.isFinite(data.roundLimit) && data.roundLimit - data.round <= 0);
+                    if (isFinal) {
+                        // Skip the summary overlay on the final round and go straight to the end screen
+                        try { playWinnerMusic(); } catch (e) {}
+                        window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
+                    } else {
+                        showHistogram(data.lastRoundResults);
+                    }
                 }
             } else {
                 stopTimer();
@@ -1400,16 +1407,24 @@
                 winnerAnnouncement.textContent = `Round ${currentRound} winner: ${winner.nickname} with ${winner.totalScore} pts (bonus +${winner.bonus ?? 0}).`;
                 winnerAnnouncement.dataset.mode = "round";
                 winnerAnnouncement.classList.remove("hidden");
-                showHistogram(results);
-                playSfx(winnerSfx);
-                if (Number.isFinite(roundLimit) && roundLimit - currentRound <= 0) {
-                    roundOverlay.classList.add("hidden");
-                    roundOverlay.classList.remove("flex");
-                    await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
+
+                const isFinalRound = Number.isFinite(roundLimit) && roundLimit - currentRound <= 0;
+                if (isFinalRound) {
+                    // Do not show the post-round summary overlay for the final round.
+                    // Transition immediately to the final winner screen instead.
+                    try {
+                        await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
+                    } catch (e) {
+                        // ignore if unable to update (clients will still navigate)
+                    }
                     playWinnerMusic();
                     window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
                     return;
                 }
+
+                // Non-final rounds: display the histogram/summary as before.
+                showHistogram(results);
+                playSfx(winnerSfx);
             } catch (error) {
                 console.error("Error finalizing round:", error);
                 feedbackMessage.textContent = `Error finalizing round: ${error.message}`;
