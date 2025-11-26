@@ -128,6 +128,17 @@
         <div id="winner-content" class="space-y-6">
             <div id="winner-main" class="bg-slate-800/70 border border-cyan-500/40 rounded-2xl p-6 hidden text-center"></div>
 
+            <div id="special-achievements" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                <div id="best-color-match" class="bg-slate-800/60 border border-purple-500/40 rounded-2xl p-5">
+                    <h4 class="text-sm uppercase tracking-widest text-purple-300 mb-3">🎨 Best Color Match</h4>
+                    <div id="best-match-content" class="space-y-2 text-sm"></div>
+                </div>
+                <div id="fastest-guess" class="bg-slate-800/60 border border-green-500/40 rounded-2xl p-5">
+                    <h4 class="text-sm uppercase tracking-widest text-green-300 mb-3">⚡ Fastest Guess</h4>
+                    <div id="fastest-content" class="space-y-2 text-sm"></div>
+                </div>
+            </div>
+
             <div id="standings" class="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 hidden">
                 <h3 class="text-xl font-semibold mb-4 text-white">Full leaderboard</h3>
                 <ol id="standings-list" class="space-y-2 text-sm text-cyan-100"></ol>
@@ -144,7 +155,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyCM-WlWhbhI3mxWXm9uXMQBa8mfFWoIoTA",
@@ -166,6 +177,9 @@
         const winnerMain = document.getElementById("winner-main");
         const standings = document.getElementById("standings");
         const standingsList = document.getElementById("standings-list");
+        const specialAchievements = document.getElementById("special-achievements");
+        const bestMatchContent = document.getElementById("best-match-content");
+        const fastestContent = document.getElementById("fastest-content");
         const cta = document.getElementById("cta");
         const copyLinkBtn = document.getElementById("copy-link-btn");
         const newRoomLink = document.getElementById("new-room-link");
@@ -212,9 +226,10 @@
                 populatePodium(standingsData.slice(0, 3));
                 populateWinnerCard(standingsData[0]);
                 winnerMain.classList.remove("hidden");
-                if (sessionStorage.getItem("rgbIsHost") === "true") {
-                    winnerMusic.play().catch(() => {});
-                }
+                winnerMusic.play().catch(() => {});
+
+                // Fetch and display special achievements
+                await populateSpecialAchievements(gameId, data);
 
                 standingsList.innerHTML = standingsData
                     .map(player => `
@@ -260,6 +275,96 @@
                 <h2 class="text-3xl font-bold text-white">${champion.nickname}</h2>
                 <p class="text-cyan-200 mt-2">Total score: ${champion.totalScore}</p>
             `;
+        }
+
+        async function populateSpecialAchievements(gameId, gameData) {
+            try {
+                const guessesRef = collection(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_guesses");
+                const guessesQuery = query(guessesRef, where("gameId", "==", gameId));
+                const guessesSnapshot = await getDocs(guessesQuery);
+                
+                const playersRef = collection(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_players");
+                const playersQuery = query(playersRef, where("gameId", "==", gameId));
+                const playersSnapshot = await getDocs(playersQuery);
+                
+                const playerMap = {};
+                playersSnapshot.forEach(docSnap => {
+                    const player = docSnap.data();
+                    if (!player.isHost) {
+                        playerMap[player.userId] = player.nickname ?? `${player.userId.slice(0, 8)}...`;
+                    }
+                });
+
+                const historyRef = collection(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_game_state");
+                const historyDoc = await getDoc(doc(historyRef, gameId));
+                const rounds = historyDoc.exists() ? historyDoc.data() : {};
+
+                let bestColorMatch = null;
+                let fastestGuess = null;
+
+                guessesSnapshot.forEach(docSnap => {
+                    const guess = docSnap.data();
+                    if (!guess.score || playerMap[guess.userId] === undefined) return;
+
+                    const scoreWithoutBonus = guess.score;
+                    if (!bestColorMatch || scoreWithoutBonus > bestColorMatch.score) {
+                        bestColorMatch = {
+                            nickname: playerMap[guess.userId],
+                            score: scoreWithoutBonus,
+                            guessR: guess.r,
+                            guessG: guess.g,
+                            guessB: guess.b,
+                            round: guess.round
+                        };
+                    }
+
+                    if (guess.timestamp && (!fastestGuess || guess.timestamp < fastestGuess.timestamp)) {
+                        fastestGuess = {
+                            nickname: playerMap[guess.userId],
+                            timestamp: guess.timestamp,
+                            guessR: guess.r,
+                            guessG: guess.g,
+                            guessB: guess.b,
+                            score: scoreWithoutBonus,
+                            round: guess.round
+                        };
+                    }
+                });
+
+                if (bestColorMatch) {
+                    bestMatchContent.innerHTML = `
+                        <p class="text-white font-semibold">${bestColorMatch.nickname}</p>
+                        <p class="text-gray-300">Score: ${bestColorMatch.score} pts</p>
+                        <div class="flex gap-2 mt-2 items-center">
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-400 mb-1">Guess</p>
+                                <div class="h-8 rounded border border-gray-600" style="background-color: rgb(${bestColorMatch.guessR}, ${bestColorMatch.guessG}, ${bestColorMatch.guessB});"></div>
+                                <p class="text-xs text-gray-400 mt-1">RGB(${bestColorMatch.guessR}, ${bestColorMatch.guessG}, ${bestColorMatch.guessB})</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (fastestGuess) {
+                    fastestContent.innerHTML = `
+                        <p class="text-white font-semibold">${fastestGuess.nickname}</p>
+                        <p class="text-gray-300">Score: ${fastestGuess.score} pts</p>
+                        <div class="flex gap-2 mt-2 items-center">
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-400 mb-1">Guess</p>
+                                <div class="h-8 rounded border border-gray-600" style="background-color: rgb(${fastestGuess.guessR}, ${fastestGuess.guessG}, ${fastestGuess.guessB});"></div>
+                                <p class="text-xs text-gray-400 mt-1">RGB(${fastestGuess.guessR}, ${fastestGuess.guessG}, ${fastestGuess.guessB})</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (bestColorMatch || fastestGuess) {
+                    specialAchievements.classList.remove("hidden");
+                }
+            } catch (error) {
+                console.error("Error loading special achievements:", error);
+            }
         }
 
         function populatePodium(topThree) {

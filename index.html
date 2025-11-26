@@ -518,10 +518,10 @@
         }
 
         function playMusic(track) {
-            // Play a music track for all clients (if music enabled). Ensure
+            // Play a music track for host only (if music enabled). Ensure
             // only one track is audible at once and do not reset playback
             // position when switching back to a previously-playing track.
-            if (!musicEnabled || !track) return;
+            if (!musicEnabled || !(isHost || isAdmin) || !track) return;
             try {
                 if (currentMusic === track && !track.paused) return;
                 if (currentMusic && currentMusic !== track) {
@@ -870,22 +870,32 @@
             }
         }
 
-        function showHistogram(results) {
+        function showHistogram(results, isFinalRound = false) {
             lastHistogramRound = currentRound;
-            const hasMoreRounds = Number.isFinite(roundLimit) ? currentRound < roundLimit : true;
+            const hasMoreRounds = !isFinalRound && (Number.isFinite(roundLimit) ? currentRound < roundLimit : true);
             summaryHasNextRound = hasMoreRounds;
             if (isAdmin) {
-                overlayNextRoundBtn.textContent = "Close summary";
+                if (isFinalRound) {
+                    overlayNextRoundBtn.textContent = "Show final winner";
+                } else {
+                    overlayNextRoundBtn.textContent = "Close summary";
+                }
                 overlayNextRoundBtn.classList.remove("hidden");
-                overlayWaitingMsg.textContent = hasMoreRounds
-                    ? "Use the host panel to start the next round when you're ready."
-                    : "This was the final round. When you close this summary the winner screen will appear.";
+                if (isFinalRound) {
+                    overlayWaitingMsg.textContent = "Click 'Show final winner' to reveal the champion!";
+                } else {
+                    overlayWaitingMsg.textContent = hasMoreRounds
+                        ? "Use the host panel to start the next round when you're ready."
+                        : "This was the final round. When you close this summary the winner screen will appear.";
+                }
                 overlayWaitingMsg.classList.remove("hidden");
             } else {
                 overlayNextRoundBtn.classList.add("hidden");
-                overlayWaitingMsg.textContent = hasMoreRounds
-                    ? "Waiting for host to start next round..."
-                    : "Game complete. Waiting for host to reveal the winner.";
+                overlayWaitingMsg.textContent = isFinalRound
+                    ? "Game complete! Waiting for host to reveal the winner..."
+                    : hasMoreRounds
+                        ? "Waiting for host to start next round..."
+                        : "Game complete. Waiting for host to reveal the winner.";
                 overlayWaitingMsg.classList.remove("hidden");
             }
 
@@ -926,16 +936,22 @@
                     }))
                     .sort((a, b) => b.totalScore - a.totalScore);
 
-                const leaderboardHtml = leaderboardEntries.length
-                    ? leaderboardEntries.slice(0, 8)
-                          .map((entry, index) => `
-                            <div class="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-700 bg-gray-900/60 text-sm text-gray-200">
-                                <span>#${index + 1} ${entry.nickname}</span>
-                                <span class="font-semibold text-cyan-300">${entry.totalScore}</span>
-                            </div>
-                        `)
-                          .join("")
-                    : `<div class="text-sm text-gray-400 text-center">No leaderboard data yet.</div>`;
+                let leaderboardHtml;
+                if (isFinalRound) {
+                    // Hide total scores on final round summary
+                    leaderboardHtml = `<div class="text-sm text-gray-400 text-center italic">Final standings will be revealed on the winner screen...</div>`;
+                } else {
+                    leaderboardHtml = leaderboardEntries.length
+                        ? leaderboardEntries.slice(0, 8)
+                              .map((entry, index) => `
+                                <div class="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-700 bg-gray-900/60 text-sm text-gray-200">
+                                    <span>#${index + 1} ${entry.nickname}</span>
+                                    <span class="font-semibold text-cyan-300">${entry.totalScore}</span>
+                                </div>
+                            `)
+                              .join("")
+                        : `<div class="text-sm text-gray-400 text-center">No leaderboard data yet.</div>`;
+                }
 
                 roundSummaryColors.innerHTML = `
                     <div class="space-y-5">
@@ -948,7 +964,7 @@
                         </div>
 
                         <div>
-                            <h5 class="text-sm font-semibold text-gray-200 mb-2">Total leaderboard</h5>
+                            <h5 class="text-sm font-semibold text-gray-200 mb-2">${isFinalRound ? "Round results" : "Total leaderboard"}</h5>
                             <div class="space-y-2 max-h-48 overflow-y-auto">
                                 ${leaderboardHtml}
                             </div>
@@ -959,12 +975,18 @@
 
             summaryHasNextRound = hasMoreRounds;
             if (isAdmin) {
-                overlayNextRoundBtn.textContent = hasMoreRounds ? "Start next round" : "Close summary";
+                if (isFinalRound) {
+                    overlayNextRoundBtn.textContent = "Show final winner";
+                } else {
+                    overlayNextRoundBtn.textContent = hasMoreRounds ? "Start next round" : "Close summary";
+                }
                 overlayNextRoundBtn.classList.remove("hidden");
                 overlayWaitingMsg.classList.add("hidden");
             } else {
                 overlayNextRoundBtn.classList.add("hidden");
-                overlayWaitingMsg.textContent = hasMoreRounds ? "Waiting for host to start next round..." : "Game complete. Waiting for host.";
+                overlayWaitingMsg.textContent = isFinalRound
+                    ? "Game complete! Waiting for host to reveal the winner..."
+                    : hasMoreRounds ? "Waiting for host to start next round..." : "Game complete. Waiting for host.";
                 overlayWaitingMsg.classList.remove("hidden");
             }
 
@@ -1173,9 +1195,6 @@
                 }
                 roundStatus = data.roundStatus;
                 gameStatus = data.gameStatus ?? "WAITING";
-                if (gameStatus === "AWAITING_WINNER" && (isHost || isAdmin)) {
-                    playWinnerMusic();
-                }
                 guessEndTime = data.guessEndTime ?? 0;
                 if (data.gameStatus === "SHOW_WINNER") {
                     if (isHost || isAdmin) {
@@ -1217,12 +1236,12 @@
                     correctAnswer.classList.remove("hidden");
                 if (Array.isArray(data.lastRoundResults) && data.round !== lastHistogramRound) {
                     const isFinal = data.gameStatus === "AWAITING_WINNER" || (Number.isFinite(data.roundLimit) && data.roundLimit - data.round <= 0);
-                    if (isFinal) {
-                        // Skip the summary overlay on the final round and go straight to the end screen
-                        try { playWinnerMusic(); } catch (e) {}
+                    if (data.gameStatus === "SHOW_WINNER") {
+                        // Host has clicked to show winner, navigate all clients
                         window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
                     } else {
-                        showHistogram(data.lastRoundResults);
+                        // Show histogram, passing isFinal flag if this is the last round
+                        showHistogram(data.lastRoundResults, isFinal);
                     }
                 }
             } else {
@@ -1413,15 +1432,10 @@
 
                 const isFinalRound = Number.isFinite(roundLimit) && roundLimit - currentRound <= 0;
                 if (isFinalRound) {
-                    // Do not show the post-round summary overlay for the final round.
-                    // Transition immediately to the final winner screen instead.
-                    try {
-                        await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
-                    } catch (e) {
-                        // ignore if unable to update (clients will still navigate)
-                    }
-                    playWinnerMusic();
-                    window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
+                    // Show the summary overlay for the final round, but mark it as final
+                    // so the UI hides final standings and shows a host-controlled continue button.
+                    showHistogram(results, true);
+                    playSfx(winnerSfx);
                     return;
                 }
 
@@ -1557,8 +1571,8 @@
                     await startNextRound();
                     playGameMusic();
                 } else {
+                    // Final round or show winner button clicked
                     await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
-                    playWinnerMusic();
                     window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
                 }
             } finally {
