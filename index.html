@@ -132,10 +132,13 @@
                     </button>
                 </div>
 
-                <div id="room-code-wrapper" class="bg-gray-900/80 border border-cyan-600/40 rounded-2xl p-4 space-y-2 text-center">
+                <div id="room-code-wrapper" class="bg-gray-900/80 border border-cyan-600/40 rounded-2xl p-4 space-y-3 text-center">
                     <p class="text-xs uppercase tracking-widest text-cyan-300">Room code</p>
                     <p id="room-code-display" class="text-3xl font-mono font-bold text-white tracking-[0.35em]">------</p>
-                    <p class="text-[11px] text-gray-400">Share this key with players so they can join.</p>
+                    <div id="qr-code-container" class="flex justify-center py-2">
+                        <img id="qr-code-image" class="w-32 h-32 bg-white p-2 rounded-lg" alt="QR Code" />
+                    </div>
+                    <p class="text-[11px] text-gray-400">Share the code or scan the QR to join.</p>
                 </div>
 
                 <div id="host-scoreboard" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 space-y-3">
@@ -362,6 +365,7 @@
         const joinCodeInput = document.getElementById("join-code-input");
         const entryError = document.getElementById("entry-error");
         const roomCodeDisplay = document.getElementById("room-code-display");
+        const qrCodeImage = document.getElementById("qr-code-image");
         const playerRoomCodeDisplay = document.getElementById("player-room-code");
         const showWinnerBtn = document.getElementById("show-winner-btn");
         const waitingRoomDemo = document.getElementById("waiting-room-demo");
@@ -448,6 +452,9 @@
                 playerRoomCodeDisplay.textContent = `Room code: ${code}`;
                 playerRoomCodeDisplay.classList.remove("hidden");
             }
+            // Generate QR code for the game link
+            const gameUrl = `${window.location.origin}${window.location.pathname}?game=${code}`;
+            qrCodeImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(gameUrl)}`;
         }
 
         function clearActiveGameCode() {
@@ -1034,7 +1041,10 @@
                 }, { merge: true });
                 hasGuessed = true;
                 if (!isAuto) {
-                    feedbackMessage.textContent = "Your guess was submitted!";
+                    const msRemaining = Math.max(0, guessEndTime - guess.timestamp);
+                    const timeBonus = Math.min(10, Math.floor(msRemaining / 3000));
+                    feedbackMessage.textContent = `Guess submitted! Time bonus: +${timeBonus} points`;
+                    feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-green-600/70";
                     playSfx(submitSfx);
                 }
             } finally {
