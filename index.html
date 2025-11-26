@@ -1015,7 +1015,10 @@
                 b: parseInt(blueSlider.value, 10),
                 round: currentRound,
                 gameId,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                targetR: targetColor.r,
+                targetG: targetColor.g,
+                targetB: targetColor.b
             };
 
             try {
@@ -1379,7 +1382,11 @@
                     round: currentRound,
                     winner,
                     topResults: results.slice(0, 10),
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    targetR: targetColor.r,
+                    targetG: targetColor.g,
+                    targetB: targetColor.b,
+                    roundStartTime: guessEndTime - 30000
                 });
 
                 const projectedTotals = {};

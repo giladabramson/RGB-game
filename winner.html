@@ -297,9 +297,15 @@
                     }
                 });
 
-                const historyRef = collection(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_game_state");
-                const historyDoc = await getDoc(doc(historyRef, gameId));
-                const rounds = historyDoc.exists() ? historyDoc.data() : {};
+                const roundHistoryRef = collection(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_round_history");
+                const roundHistoryQuery = query(roundHistoryRef, where("gameId", "==", gameId));
+                const roundHistorySnapshot = await getDocs(roundHistoryQuery);
+                
+                const roundDataMap = {};
+                roundHistorySnapshot.forEach(docSnap => {
+                    const roundData = docSnap.data();
+                    roundDataMap[roundData.round] = roundData;
+                });
 
                 let bestColorMatch = null;
                 let fastestGuess = null;
@@ -309,6 +315,8 @@
                     if (!guess.score || playerMap[guess.userId] === undefined) return;
 
                     const scoreWithoutBonus = guess.score;
+                    const roundData = roundDataMap[guess.round];
+                    
                     if (!bestColorMatch || scoreWithoutBonus > bestColorMatch.score) {
                         bestColorMatch = {
                             nickname: playerMap[guess.userId],
@@ -316,21 +324,23 @@
                             guessR: guess.r,
                             guessG: guess.g,
                             guessB: guess.b,
-                            targetR: guess.targetR,
-                            targetG: guess.targetG,
-                            targetB: guess.targetB,
+                            targetR: guess.targetR || roundData?.targetR,
+                            targetG: guess.targetG || roundData?.targetG,
+                            targetB: guess.targetB || roundData?.targetB,
                             round: guess.round
                         };
                     }
 
-                    // Use submittedAt field which contains the time taken
-                    if (guess.submittedAt && (!fastestGuess || guess.submittedAt < fastestGuess.timeToAnswer)) {
-                        fastestGuess = {
-                            nickname: playerMap[guess.userId],
-                            timeToAnswer: guess.submittedAt,
-                            score: scoreWithoutBonus,
-                            round: guess.round
-                        };
+                    if (guess.timestamp && roundData?.roundStartTime) {
+                        const timeToAnswer = guess.timestamp - roundData.roundStartTime;
+                        if (!fastestGuess || timeToAnswer < fastestGuess.timeToAnswer) {
+                            fastestGuess = {
+                                nickname: playerMap[guess.userId],
+                                timeToAnswer: timeToAnswer,
+                                score: scoreWithoutBonus,
+                                round: guess.round
+                            };
+                        }
                     }
                 });
 
