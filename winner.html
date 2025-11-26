@@ -316,6 +316,9 @@
                             guessR: guess.r,
                             guessG: guess.g,
                             guessB: guess.b,
+                            targetR: guess.targetR,
+                            targetG: guess.targetG,
+                            targetB: guess.targetB,
                             round: guess.round
                         };
                     }
@@ -340,6 +343,11 @@
                                 <p class="text-xs text-gray-400 mb-1">Guess</p>
                                 <div class="h-8 rounded border border-gray-600" style="background-color: rgb(${bestColorMatch.guessR}, ${bestColorMatch.guessG}, ${bestColorMatch.guessB});"></div>
                                 <p class="text-xs text-gray-400 mt-1">RGB(${bestColorMatch.guessR}, ${bestColorMatch.guessG}, ${bestColorMatch.guessB})</p>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-400 mb-1">Target</p>
+                                <div class="h-8 rounded border border-gray-600" style="background-color: rgb(${bestColorMatch.targetR}, ${bestColorMatch.targetG}, ${bestColorMatch.targetB});"></div>
+                                <p class="text-xs text-gray-400 mt-1">RGB(${bestColorMatch.targetR}, ${bestColorMatch.targetG}, ${bestColorMatch.targetB})</p>
                             </div>
                         </div>
                     `;
