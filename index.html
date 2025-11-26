@@ -199,7 +199,7 @@
             Waiting for the host to start the game...
         </div>
 
-        <div id="player-panel">
+        <div id="player-panel" class="hidden">
         <div id="guess-controls" class="space-y-5 mb-6">
             <div>
                 <div class="flex justify-between items-center mb-1">
@@ -844,6 +844,7 @@
                 playerInfoWrapper?.classList.remove("hidden");
                 document.getElementById("round-info")?.classList.remove("hidden");
                 document.getElementById("scoreboard-section")?.classList.remove("hidden");
+                document.getElementById("player-panel")?.classList.remove("hidden");
                 guessControls.classList.remove("hidden");
                 startNewRoundBtn.classList.toggle("hidden", isPreGame);
                 waitingRoomDemo?.classList.toggle("hidden", !isPreGame);
@@ -864,6 +865,7 @@
                     }
                 }
             } else {
+                document.getElementById("player-panel")?.classList.remove("hidden");
                 guessControls.classList.remove("hidden");
                 startNewRoundBtn.classList.add("hidden");
                 waitingRoomDemo?.classList.add("hidden");
