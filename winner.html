@@ -226,7 +226,9 @@
                 populatePodium(standingsData.slice(0, 3));
                 populateWinnerCard(standingsData[0]);
                 winnerMain.classList.remove("hidden");
-                winnerMusic.play().catch(() => {});
+                if (sessionStorage.getItem("rgbIsHost") === "true") {
+                    winnerMusic.play().catch(() => {});
+                }
 
                 // Fetch and display special achievements
                 await populateSpecialAchievements(gameId, data);
@@ -301,6 +303,15 @@
 
                 let bestColorMatch = null;
                 let fastestGuess = null;
+                const roundStartTimes = {};
+
+                // Build map of round start times from game state
+                for (let key in rounds) {
+                    if (key.startsWith('round_') && rounds[key]?.startTime) {
+                        const roundNum = parseInt(key.split('_')[1]);
+                        roundStartTimes[roundNum] = rounds[key].startTime;
+                    }
+                }
 
                 guessesSnapshot.forEach(docSnap => {
                     const guess = docSnap.data();
@@ -318,16 +329,17 @@
                         };
                     }
 
-                    if (guess.timestamp && (!fastestGuess || guess.timestamp < fastestGuess.timestamp)) {
-                        fastestGuess = {
-                            nickname: playerMap[guess.userId],
-                            timestamp: guess.timestamp,
-                            guessR: guess.r,
-                            guessG: guess.g,
-                            guessB: guess.b,
-                            score: scoreWithoutBonus,
-                            round: guess.round
-                        };
+                    if (guess.timestamp && roundStartTimes[guess.round]) {
+                        const timeToAnswer = guess.timestamp - roundStartTimes[guess.round];
+                        if (!fastestGuess || timeToAnswer < fastestGuess.timeToAnswer) {
+                            fastestGuess = {
+                                nickname: playerMap[guess.userId],
+                                timestamp: guess.timestamp,
+                                timeToAnswer: timeToAnswer,
+                                score: scoreWithoutBonus,
+                                round: guess.round
+                            };
+                        }
                     }
                 });
 
@@ -346,16 +358,13 @@
                 }
 
                 if (fastestGuess) {
+                    const timeMs = fastestGuess.timeToAnswer || 0;
+                    const timeSec = (timeMs / 1000).toFixed(2);
                     fastestContent.innerHTML = `
                         <p class="text-white font-semibold">${fastestGuess.nickname}</p>
                         <p class="text-gray-300">Score: ${fastestGuess.score} pts</p>
-                        <div class="flex gap-2 mt-2 items-center">
-                            <div class="flex-1">
-                                <p class="text-xs text-gray-400 mb-1">Guess</p>
-                                <div class="h-8 rounded border border-gray-600" style="background-color: rgb(${fastestGuess.guessR}, ${fastestGuess.guessG}, ${fastestGuess.guessB});"></div>
-                                <p class="text-xs text-gray-400 mt-1">RGB(${fastestGuess.guessR}, ${fastestGuess.guessG}, ${fastestGuess.guessB})</p>
-                            </div>
-                        </div>
+                        <p class="text-green-400 font-bold text-2xl mt-2">${timeSec}s</p>
+                        <p class="text-xs text-gray-400">Time to answer</p>
                     `;
                 }
 
