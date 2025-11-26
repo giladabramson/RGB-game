@@ -101,7 +101,7 @@
         <p id="entry-error" class="text-center text-sm text-red-400 mt-6 hidden">Unable to continue. Please try again.</p>
     </div>
 
-    <div id="game-screen" class="hidden w-full max-w-4xl mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 mt-10">
+    <div id="game-screen" class="hidden w-full max-w-7xl mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 mt-10">
         <h1 class="text-3xl font-bold text-center text-white mb-4">Guess the RGB</h1>
         <p class="text-xs text-center text-gray-400 mb-4">Round <span id="round-number">1</span> of <span id="round-total">∞</span></p>
         <div id="player-info-wrapper" class="space-y-1 mb-4">
@@ -197,8 +197,6 @@
         </div>
 
         <div id="player-panel" class="lg:col-span-2">
-            <h2 class="text-xl font-semibold text-white mt-8 mb-4 border-b border-gray-700 pb-2">My guess</h2>
-
         <div id="guess-controls" class="space-y-5 mb-6">
             <div>
                 <div class="flex justify-between items-center mb-1">
@@ -1244,8 +1242,6 @@
                     playGameMusic();
                 } else if (roundStatus === "SCORED") {
                     stopTimer();
-                    feedbackMessage.textContent = "Round finished! Scores have been calculated.";
-                    feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-yellow-600";
                     correctAnswer.classList.remove("hidden");
                 if (Array.isArray(data.lastRoundResults) && data.round !== lastHistogramRound) {
                     const isFinal = data.gameStatus === "AWAITING_WINNER" || (Number.isFinite(data.roundLimit) && data.roundLimit - data.round <= 0);
@@ -1653,6 +1649,14 @@
 
         renderScoreboard();
         updateCurrentColor();
+
+        // Auto-join if game code is in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameCodeFromUrl = urlParams.get('game');
+        if (gameCodeFromUrl && userId) {
+            joinCodeInput.value = gameCodeFromUrl;
+            startJoinFlow();
+        }
 
     </script>
 </body>
