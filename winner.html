@@ -303,15 +303,6 @@
 
                 let bestColorMatch = null;
                 let fastestGuess = null;
-                const roundStartTimes = {};
-
-                // Build map of round start times from game state
-                for (let key in rounds) {
-                    if (key.startsWith('round_') && rounds[key]?.startTime) {
-                        const roundNum = parseInt(key.split('_')[1]);
-                        roundStartTimes[roundNum] = rounds[key].startTime;
-                    }
-                }
 
                 guessesSnapshot.forEach(docSnap => {
                     const guess = docSnap.data();
@@ -329,17 +320,14 @@
                         };
                     }
 
-                    if (guess.timestamp && roundStartTimes[guess.round]) {
-                        const timeToAnswer = guess.timestamp - roundStartTimes[guess.round];
-                        if (!fastestGuess || timeToAnswer < fastestGuess.timeToAnswer) {
-                            fastestGuess = {
-                                nickname: playerMap[guess.userId],
-                                timestamp: guess.timestamp,
-                                timeToAnswer: timeToAnswer,
-                                score: scoreWithoutBonus,
-                                round: guess.round
-                            };
-                        }
+                    // Use submittedAt field which contains the time taken
+                    if (guess.submittedAt && (!fastestGuess || guess.submittedAt < fastestGuess.timeToAnswer)) {
+                        fastestGuess = {
+                            nickname: playerMap[guess.userId],
+                            timeToAnswer: guess.submittedAt,
+                            score: scoreWithoutBonus,
+                            round: guess.round
+                        };
                     }
                 });
 
