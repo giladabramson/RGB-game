@@ -127,9 +127,14 @@
                         <p class="text-3xl font-bold text-white">Round <span id="host-round-number">1</span></p>
                         <p class="text-xs text-gray-400">Only the shared target is visible to players.</p>
                     </div>
-                    <button id="start-new-round-btn" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-5 rounded-lg text-lg transition-colors shadow-lg">
-                        Start next round
-                    </button>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <button id="end-round-early-btn" type="button" class="hidden flex-1 bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold py-3 px-5 rounded-lg text-base transition-colors shadow-lg">
+                            End round now
+                        </button>
+                        <button id="start-new-round-btn" class="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-5 rounded-lg text-lg transition-colors shadow-lg">
+                            Start next round
+                        </button>
+                    </div>
                 </div>
 
                 <div id="room-code-wrapper" class="bg-gray-900/80 border border-cyan-600/40 rounded-2xl p-4 space-y-2 text-center">
@@ -337,6 +342,7 @@
         const blueValue = document.getElementById("blue-value");
         const submitGuessBtn = document.getElementById("submit-guess-btn");
         const startNewRoundBtn = document.getElementById("start-new-round-btn");
+        const endRoundEarlyBtn = document.getElementById("end-round-early-btn");
         const feedbackMessage = document.getElementById("feedback-message");
         const correctAnswer = document.getElementById("correct-answer");
         const userIdDisplay = document.getElementById("user-id-display");
@@ -434,6 +440,22 @@
         const warningBellSfx = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_f5df3b3dbe.mp3?filename=bell-notification-126903.mp3");
         warningBellSfx.volume = 0.6;
 
+        if (feedbackMessage) {
+            feedbackMessage.tabIndex = 0;
+            feedbackMessage.setAttribute("role", "status");
+            feedbackMessage.addEventListener("click", () => {
+                requestEarlyRoundEnd();
+            });
+            feedbackMessage.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    requestEarlyRoundEnd();
+                }
+            });
+        }
+
+        endRoundEarlyBtn?.addEventListener("click", () => requestEarlyRoundEnd());
+
         function generateRoomCode() {
             const min = 10 ** (ROOM_CODE_LENGTH - 1);
             const max = 10 ** ROOM_CODE_LENGTH - 1;
@@ -477,8 +499,9 @@
             const diffB = Math.abs(bTarget - bGuess);
             const totalDiff = diffR + diffG + diffB;
             const maxDiff = 255 * 3;
-            const score = Math.max(0, Math.round(100 * (1 - totalDiff / maxDiff)));
-            return score;
+            const rawScore = Math.max(0, Math.round(100 * (1 - totalDiff / maxDiff)));
+            const penalizedScore = Math.round(Math.pow(rawScore / 100, 1.5) * 100);
+            return penalizedScore;
         }
 
         function openNicknameModal(prefill = "") {
@@ -773,29 +796,63 @@
 
         function startTimer() {
             stopTimer();
-            timerInterval = setInterval(async () => {
-            const timeLeft = guessEndTime - Date.now();
-            const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
-            if (!warningBellPlayed && isAdmin && secondsLeft <= 10 && secondsLeft > 0) {
-                playSfx(warningBellSfx);
-                warningBellPlayed = true;
-            }
-            if (secondsLeft <= 0) {
-                stopTimer();
-                if (isAdmin) {
-                    feedbackMessage.textContent = "Time is up! Finalizing results...";
-                    await finalizeRound();
-                } else {
-                    feedbackMessage.textContent = "Time is up! Waiting for the host to reveal results.";
-                    if (!hasGuessed && roundStatus === "GUESSING") {
-                        submitGuess(true).catch((error) => console.error("Auto-submit failed:", error));
-                    }
+            const tick = async () => {
+                const timeLeft = guessEndTime - Date.now();
+                const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
+                if (!warningBellPlayed && isAdmin && secondsLeft <= 10 && secondsLeft > 0) {
+                    playSfx(warningBellSfx);
+                    warningBellPlayed = true;
                 }
-            } else {
-                feedbackMessage.textContent = `Hurry! ${secondsLeft} seconds left to submit your guess.`;
-                feedbackMessage.className = `h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white ${secondsLeft <= 10 ? "bg-red-800/50" : "bg-teal-600/50"}`;
+                if (secondsLeft <= 0) {
+                    stopTimer();
+                    if (isAdmin) {
+                        feedbackMessage.textContent = "Time is up! Finalizing results...";
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-cyan-700/60";
+                        feedbackMessage.setAttribute("role", "status");
+                        await finalizeRound();
+                    } else {
+                        feedbackMessage.textContent = "Time is up! Waiting for the host to reveal results.";
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-gray-700/50";
+                        feedbackMessage.setAttribute("role", "status");
+                        if (!hasGuessed && roundStatus === "GUESSING") {
+                            submitGuess(true).catch((error) => console.error("Auto-submit failed:", error));
+                        }
+                    }
+                } else {
+                    if (isAdmin) {
+                        feedbackMessage.textContent = `Host timer: ${secondsLeft}s remaining (click to end now).`;
+                        feedbackMessage.setAttribute("role", "button");
+                    } else {
+                        feedbackMessage.textContent = `Hurry! ${secondsLeft} seconds left to submit your guess.`;
+                        feedbackMessage.setAttribute("role", "status");
+                    }
+                    const baseClass = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white";
+                    const urgencyClass = secondsLeft <= 10 ? "bg-red-800/50" : (isAdmin ? "bg-cyan-700/60" : "bg-teal-600/50");
+                    const clickableClass = isAdmin ? "cursor-pointer hover:ring-2 hover:ring-cyan-400 transition" : "";
+                    feedbackMessage.className = `${baseClass} ${urgencyClass} ${clickableClass}`.trim();
+                }
+            };
+            tick();
+            timerInterval = setInterval(tick, 1000);
+        }
+
+        async function requestEarlyRoundEnd() {
+            if (!isAdmin) return;
+            if (roundStatus !== "GUESSING" || isFinalizingRound) {
+                if (roundStatus !== "GUESSING" && feedbackMessage) {
+                    feedbackMessage.textContent = "You can only end a round while guesses are active.";
+                    feedbackMessage.className = "h-16 text-center text-base font-medium flex items-center justify-center p-2 rounded-lg text-white bg-gray-700/70";
+                    feedbackMessage.setAttribute("role", "status");
+                }
+                return;
             }
-            }, 1000);
+            const confirmEnd = window.confirm("End the round now? Players who haven't submitted will be auto-filled.");
+            if (!confirmEnd) return;
+            stopTimer();
+            feedbackMessage.textContent = "Ending round early...";
+            feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-amber-600/60";
+            feedbackMessage.setAttribute("role", "status");
+            await finalizeRound();
         }
 
         function updateUIForRoleAndStatus() {
@@ -831,6 +888,11 @@
                 guessControls.classList.remove("hidden");
                 startNewRoundBtn.classList.toggle("hidden", isPreGame);
                 waitingRoomDemo?.classList.toggle("hidden", !isPreGame);
+                const canEndEarly = roundStatus === "GUESSING" && !isPreGame;
+                if (endRoundEarlyBtn) {
+                    endRoundEarlyBtn.classList.toggle("hidden", !canEndEarly);
+                    endRoundEarlyBtn.disabled = !canEndEarly;
+                }
 
                 if (!isPreGame) {
                     if (roundStatus === "GUESSING") {
@@ -851,6 +913,10 @@
                 guessControls.classList.remove("hidden");
                 startNewRoundBtn.classList.add("hidden");
                 waitingRoomDemo?.classList.add("hidden");
+                if (endRoundEarlyBtn) {
+                    endRoundEarlyBtn.classList.add("hidden");
+                    endRoundEarlyBtn.disabled = true;
+                }
             }
             if (!isAdmin) {
                 guessControls.classList.toggle("hidden", isPreGame);
