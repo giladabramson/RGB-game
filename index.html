@@ -400,6 +400,10 @@
         const roundTotalDisplay = document.getElementById("round-total");
 
         const nicknameModal = document.getElementById("nickname-modal");
+
+        feedbackMessage?.addEventListener("click", () => {
+            requestEarlyRoundEnd();
+        });
         const nicknameInput = document.getElementById("nickname-input");
         const saveNicknameBtn = document.getElementById("save-nickname-btn");
         const cancelNicknameBtn = document.getElementById("cancel-nickname-btn");
@@ -496,8 +500,9 @@
             const diffB = Math.abs(bTarget - bGuess);
             const totalDiff = diffR + diffG + diffB;
             const maxDiff = 255 * 3;
-            const score = Math.max(0, Math.round(100 * (1 - totalDiff / maxDiff)));
-            return score;
+            const rawScore = Math.max(0, Math.round(100 * (1 - totalDiff / maxDiff)));
+            const penalizedScore = Math.round((Math.pow(rawScore / 100, 1.5)) * 100);
+            return penalizedScore;
         }
 
         function openNicknameModal(prefill = "") {
@@ -795,29 +800,50 @@
 
         function startTimer() {
             stopTimer();
-            timerInterval = setInterval(async () => {
-            const timeLeft = guessEndTime - Date.now();
-            const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
-            if (!warningBellPlayed && isAdmin && secondsLeft <= 10 && secondsLeft > 0) {
-                playSfx(warningBellSfx);
-                warningBellPlayed = true;
-            }
-            if (secondsLeft <= 0) {
-                stopTimer();
-                if (isAdmin) {
-                    feedbackMessage.textContent = "Time is up! Finalizing results...";
-                    await finalizeRound();
-                } else {
-                    feedbackMessage.textContent = "Time is up! Waiting for the host to reveal results.";
-                    if (!hasGuessed && roundStatus === "GUESSING") {
-                        submitGuess(true).catch((error) => console.error("Auto-submit failed:", error));
-                    }
+            const tick = async () => {
+                const timeLeft = guessEndTime - Date.now();
+                const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
+                if (!warningBellPlayed && isAdmin && secondsLeft <= 10 && secondsLeft > 0) {
+                    playSfx(warningBellSfx);
+                    warningBellPlayed = true;
                 }
-            } else {
-                feedbackMessage.textContent = `Hurry! ${secondsLeft} seconds left to submit your guess.`;
-                feedbackMessage.className = `h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white ${secondsLeft <= 10 ? "bg-red-800/50" : "bg-teal-600/50"}`;
-            }
-            }, 1000);
+                if (secondsLeft <= 0) {
+                    stopTimer();
+                    if (isAdmin) {
+                        feedbackMessage.textContent = "Time is up! Finalizing results...";
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-cyan-700/60";
+                        await finalizeRound();
+                    } else {
+                        feedbackMessage.textContent = "Time is up! Waiting for the host to reveal results.";
+                        feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-gray-700/50";
+                        if (!hasGuessed && roundStatus === "GUESSING") {
+                            submitGuess(true).catch((error) => console.error("Auto-submit failed:", error));
+                        }
+                    }
+                } else {
+                    if (isAdmin) {
+                        feedbackMessage.textContent = `Host timer: ${secondsLeft}s remaining (click to end now).`;
+                    } else {
+                        feedbackMessage.textContent = `Hurry! ${secondsLeft} seconds left to submit your guess.`;
+                    }
+                    const baseClass = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white";
+                    const urgencyClass = secondsLeft <= 10 ? "bg-red-800/50" : (isAdmin ? "bg-cyan-700/60" : "bg-teal-600/50");
+                    const clickableClass = isAdmin ? "cursor-pointer hover:ring-2 hover:ring-cyan-400 transition" : "";
+                    feedbackMessage.className = `${baseClass} ${urgencyClass} ${clickableClass}`.trim();
+                }
+            };
+            tick();
+            timerInterval = setInterval(tick, 1000);
+        }
+
+        async function requestEarlyRoundEnd() {
+            if (!isAdmin || roundStatus !== "GUESSING" || isFinalizingRound) return;
+            const confirmEnd = window.confirm("End the round now? Players who haven't submitted will be auto-filled.");
+            if (!confirmEnd) return;
+            stopTimer();
+            feedbackMessage.textContent = "Ending round early...";
+            feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-amber-600/60";
+            await finalizeRound();
         }
 
         function updateUIForRoleAndStatus() {
