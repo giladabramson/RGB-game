@@ -291,7 +291,7 @@
         <div class="bg-gray-800 border border-cyan-500 rounded-2xl p-8 w-full max-w-3xl shadow-2xl text-center">
             <h3 class="text-2xl font-bold text-white mb-6">Round summary</h3>
             <div class="flex flex-col md:flex-row gap-6 mb-6">
-                <div class="flex-1">
+                <div class="flex-1" id="histogram-column">
                     <h4 class="text-lg font-semibold text-gray-200 mb-3">Score histogram</h4>
                     <div id="histogram-container" class="flex items-end justify-center gap-4 min-h-[180px]"></div>
                 </div>
@@ -360,6 +360,7 @@
         const playerActionBtns = document.getElementById("player-action-btns");
         const roundOverlay = document.getElementById("round-overlay");
         const histogramContainer = document.getElementById("histogram-container");
+        const histogramColumn = document.getElementById("histogram-column");
         const roundSummaryColors = document.getElementById("round-summary-colors");
         const overlayNextRoundBtn = document.getElementById("overlay-next-round-btn");
         const overlayWaitingMsg = document.getElementById("overlay-waiting-msg");
@@ -899,6 +900,7 @@
             const hasMoreRounds = !isFinalRound && (Number.isFinite(roundLimit) ? currentRound < roundLimit : true);
             summaryHasNextRound = hasMoreRounds;
             if (isAdmin) {
+                histogramColumn?.classList.remove("hidden");
                 if (isFinalRound) {
                     overlayNextRoundBtn.textContent = "Show final winner";
                 } else {
@@ -914,6 +916,7 @@
                 }
                 overlayWaitingMsg.classList.remove("hidden");
             } else {
+                histogramColumn?.classList.add("hidden");
                 overlayNextRoundBtn.classList.add("hidden");
                 overlayWaitingMsg.textContent = isFinalRound
                     ? "Game complete! Waiting for host to reveal the winner..."
