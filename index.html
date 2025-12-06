@@ -131,36 +131,38 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-                <div id="room-code-wrapper" class="lg:col-span-2 bg-gradient-to-br from-cyan-900/50 via-slate-900 to-slate-900 border border-cyan-500/50 rounded-3xl p-5 space-y-4 text-center">
+                <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 items-stretch">
+                <div id="room-code-wrapper" class="bg-gradient-to-br from-cyan-900/50 via-slate-900 to-slate-900 border border-cyan-500/50 rounded-3xl p-5 text-center flex flex-col items-center gap-4 lg:aspect-square">
                     <p class="text-sm uppercase tracking-[0.35em] text-cyan-200">Room code</p>
                     <p id="room-code-display" class="text-4xl md:text-5xl font-mono font-extrabold text-white tracking-[0.4em]">------</p>
                     <div id="qr-code-container" class="flex justify-center py-3">
                         <div class="bg-white rounded-2xl p-3 shadow-2xl inline-flex">
-                            <img id="qr-code-image" class="w-48 h-48" alt="QR Code" />
+                            <img id="qr-code-image" class="w-64 h-64 sm:w-72 sm:h-72" alt="QR Code" />
                         </div>
                     </div>
                     <p class="text-xs text-cyan-100">Share the link or let players scan this QR to join instantly.</p>
                 </div>
 
-                <div id="host-scoreboard" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        <span>Player</span>
-                        <span>Total</span>
+                <div class="flex flex-col gap-4 h-full">
+                    <div id="host-scoreboard" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 space-y-3 flex-1">
+                        <div class="flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            <span>Player</span>
+                            <span>Total</span>
+                        </div>
+                        <ul id="host-scoreboard-list" class="space-y-2 max-h-52 overflow-y-auto pr-1 text-sm text-gray-300">
+                            <li class="text-center text-gray-500">Waiting for players...</li>
+                        </ul>
                     </div>
-                    <ul id="host-scoreboard-list" class="space-y-2 max-h-52 overflow-y-auto pr-1 text-sm text-gray-300">
-                        <li class="text-center text-gray-500">Waiting for players...</li>
-                    </ul>
-                </div>
 
-                <div id="round-config" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 space-y-3 text-sm">
-                    <div>
-                        <p class="text-xs uppercase tracking-widest text-gray-400">Rounds</p>
-                        <p class="text-lg font-semibold text-white">Configure game length</p>
+                    <div id="round-config" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-3 sm:p-4 space-y-2 text-sm self-start">
+                        <div>
+                            <p class="text-xs uppercase tracking-widest text-gray-400">Rounds</p>
+                            <p class="text-base font-semibold text-white">Configure game length</p>
+                        </div>
+                        <input id="round-count" type="number" min="1" max="99" value="5" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm" />
+                        <button id="confirm-round-count-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-1.5 rounded-lg transition-colors text-sm">Confirm &amp; start</button>
+                        <p id="round-count-error" class="text-red-400 text-xs mt-1 hidden">Please enter a number between 1 and 99.</p>
                     </div>
-                    <input id="round-count" type="number" min="1" max="99" value="5" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base" />
-                    <button id="confirm-round-count-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 rounded-lg transition-colors text-base">Confirm &amp; start</button>
-                    <p id="round-count-error" class="text-red-400 text-xs mt-1 hidden">Please enter a number between 1 and 99.</p>
                 </div>
 
                 </div>
