@@ -155,6 +155,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -169,6 +170,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
         const params = new URLSearchParams(window.location.search);
         const gameId = params.get("game");
@@ -188,7 +190,8 @@
         const bestMatchHeading = document.querySelector("#best-color-match h4");
         const fastestHeading = document.querySelector("#fastest-guess h4");
         const isHostView = sessionStorage.getItem("rgbIsHost") === "true";
-        const viewerUserId = sessionStorage.getItem("rgbUserId");
+        let viewerUserId = sessionStorage.getItem("rgbUserId");
+        let hasInitialized = false;
 
         const winnerMusic = new Audio("music/Victory Royale.mp3");
         winnerMusic.loop = false;
@@ -198,6 +201,32 @@
             statusMessage.textContent = "Missing game identifier. Please return to the main page.";
             statusMessage.classList.remove("hidden");
         } else {
+            initializeAuthAndStart();
+        }
+
+        function initializeAuthAndStart() {
+            setPersistence(auth, browserSessionPersistence)
+                .then(() => {
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            viewerUserId = user.uid;
+                            sessionStorage.setItem("rgbUserId", user.uid);
+                            startInitOnce();
+                        } else {
+                            sessionStorage.removeItem("rgbUserId");
+                            await signInAnonymously(auth);
+                        }
+                    });
+                })
+                .catch((error) => {
+                    console.error("Auth init failed on winner page:", error);
+                    startInitOnce();
+                });
+        }
+
+        function startInitOnce() {
+            if (hasInitialized) return;
+            hasInitialized = true;
             init();
         }
 
