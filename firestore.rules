@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function gameStateExists(appId, gameId) {
+      return exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/rgb_game_state/$(gameId));
+    }
+
+    function gameStateDoc(appId, gameId) {
+      return get(/databases/$(database)/documents/artifacts/$(appId)/public/data/rgb_game_state/$(gameId));
+    }
+
+    function isGameAdmin(appId, gameId) {
+      return isSignedIn()
+        && gameStateExists(appId, gameId)
+        && gameStateDoc(appId, gameId).data.adminId == request.auth.uid;
+    }
+
+    function preserved(field) {
+      return !(field in request.resource.data) || request.resource.data[field] == resource.data[field];
+    }
+
+    function targetGameId() {
+      return resource != null && resource.data.gameId != null
+        ? resource.data.gameId
+        : request.resource.data.gameId;
+    }
+
+    match /artifacts/{appId}/public/data {
+
+      match /rgb_game_state/{gameId} {
+        allow read: if true;
+        allow create: if isSignedIn() && request.resource.data.adminId == request.auth.uid;
+        allow update: if isGameAdmin(appId, gameId);
+        allow delete: if false;
+      }
+
+      match /rgb_players/{playerDocId} {
+        allow read: if true;
+
+        allow create: if isSignedIn()
+          && request.resource.data.userId is string
+          && request.resource.data.gameId is string
+          && (
+            request.resource.data.userId == request.auth.uid ||
+            isGameAdmin(appId, request.resource.data.gameId)
+          );
+
+        allow update: if isSignedIn() && (
+          (resource.data.userId == request.auth.uid && preserved("userId") && preserved("gameId")) ||
+          isGameAdmin(appId, resource.data.gameId)
+        );
+
+        allow delete: if isGameAdmin(appId, targetGameId());
+      }
+
+      match /rgb_guesses/{guessDocId} {
+        allow read: if true;
+
+        allow create: if isSignedIn()
+          && request.resource.data.userId is string
+          && request.resource.data.gameId is string
+          && (
+            request.resource.data.userId == request.auth.uid ||
+            isGameAdmin(appId, request.resource.data.gameId)
+          );
+
+        allow update: if isSignedIn() && (
+          isGameAdmin(appId, targetGameId()) ||
+          (resource.data.userId == request.auth.uid && preserved("userId") && preserved("gameId") && !("score" in resource.data))
+        );
+
+        allow delete: if isGameAdmin(appId, targetGameId());
+      }
+
+      match /rgb_round_history/{roundDocId} {
+        allow read: if true;
+        allow create, update, delete: if isGameAdmin(appId, targetGameId());
+      }
+    }
+  }
+}

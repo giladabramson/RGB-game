@@ -822,13 +822,14 @@
             const tick = async () => {
                 const timeLeft = guessEndTime - Date.now();
                 const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
-                if (!warningBellPlayed && isAdmin && secondsLeft <= 10 && secondsLeft > 0) {
+                const hostControlsActive = isAdmin || isHost;
+                if (!warningBellPlayed && hostControlsActive && secondsLeft <= 10 && secondsLeft > 0) {
                     playSfx(warningBellSfx);
                     warningBellPlayed = true;
                 }
                 if (secondsLeft <= 0) {
                     stopTimer();
-                    if (isAdmin) {
+                    if (hostControlsActive) {
                         feedbackMessage.textContent = "Time is up! Finalizing results...";
                         feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-cyan-700/60";
                         feedbackMessage.setAttribute("role", "status");
@@ -842,7 +843,7 @@
                         }
                     }
                 } else {
-                    if (isAdmin) {
+                    if (hostControlsActive) {
                         feedbackMessage.textContent = `Host timer: ${secondsLeft}s remaining (click to end now).`;
                         feedbackMessage.setAttribute("role", "button");
                     } else {
@@ -850,8 +851,8 @@
                         feedbackMessage.setAttribute("role", "status");
                     }
                     const baseClass = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white";
-                    const urgencyClass = secondsLeft <= 10 ? "bg-red-800/50" : (isAdmin ? "bg-cyan-700/60" : "bg-teal-600/50");
-                    const clickableClass = isAdmin ? "cursor-pointer hover:ring-2 hover:ring-cyan-400 transition" : "";
+                    const urgencyClass = secondsLeft <= 10 ? "bg-red-800/50" : (hostControlsActive ? "bg-cyan-700/60" : "bg-teal-600/50");
+                    const clickableClass = hostControlsActive ? "cursor-pointer hover:ring-2 hover:ring-cyan-400 transition" : "";
                     feedbackMessage.className = `${baseClass} ${urgencyClass} ${clickableClass}`.trim();
                 }
             };
@@ -860,7 +861,7 @@
         }
 
         async function requestEarlyRoundEnd() {
-            if (!isAdmin) return;
+            if (!(isAdmin || isHost)) return;
             if (roundStatus !== "GUESSING" || isFinalizingRound) {
                 if (roundStatus !== "GUESSING" && feedbackMessage) {
                     feedbackMessage.textContent = "You can only end a round while guesses are active.";
@@ -869,8 +870,6 @@
                 }
                 return;
             }
-            const confirmEnd = window.confirm("End the round now? Players who haven't submitted will be auto-filled.");
-            if (!confirmEnd) return;
             stopTimer();
             feedbackMessage.textContent = "Ending round early...";
             feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-amber-600/60";
@@ -906,7 +905,8 @@
                 playerRoomCodeDisplay.classList.toggle("hidden", !isPreGame);
             }
 
-            if (isAdmin) {
+            const hostControlsActive = isAdmin || isHost;
+            if (hostControlsActive) {
                 playerInfoWrapper?.classList.remove("hidden");
                 document.getElementById("round-info")?.classList.remove("hidden");
                 document.getElementById("scoreboard-section")?.classList.remove("hidden");
@@ -945,7 +945,7 @@
                     endRoundEarlyBtn.disabled = true;
                 }
             }
-            if (!isAdmin) {
+            if (!hostControlsActive) {
                 guessControls.classList.toggle("hidden", isPreGame);
                 playerActionBtns.classList.toggle("hidden", isPreGame);
                 practiceBoard?.classList.toggle("hidden", !isPreGame);
@@ -953,11 +953,11 @@
                 practiceBoard?.classList.add("hidden");
             }
 
-            hostPanel.classList.toggle("hidden", !isAdmin);
-            playerPanel.classList.toggle("hidden", isAdmin);
-            playerInfoWrapper.classList.toggle("hidden", isAdmin);
+            hostPanel.classList.toggle("hidden", !hostControlsActive);
+            playerPanel.classList.toggle("hidden", hostControlsActive);
+            playerInfoWrapper.classList.toggle("hidden", !hostControlsActive);
             if (showWinnerBtn) {
-                const canShowWinner = isAdmin && gameStatus === "AWAITING_WINNER";
+                const canShowWinner = hostControlsActive && gameStatus === "AWAITING_WINNER";
                 showWinnerBtn.classList.toggle("hidden", !canShowWinner);
                 showWinnerBtn.disabled = !canShowWinner;
             }
