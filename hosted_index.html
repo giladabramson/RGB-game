@@ -59,7 +59,7 @@
         }
     </style>
 </head>
-<body class="flex items-start justify-center min-h-screen p-4">
+<body class="min-h-screen p-4 overflow-x-hidden">
     <!-- Nickname Modal -->
     <div id="nickname-modal" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center hidden">
         <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm border border-cyan-600">
@@ -78,7 +78,7 @@
         </div>
     </div>
 
-    <div id="entry-screen" class="w-full max-w-2xl bg-gray-900 rounded-3xl shadow-2xl p-8 md:p-10 mt-10 border border-cyan-700/40">
+    <div id="entry-screen" class="w-full max-w-2xl bg-gray-900 rounded-3xl shadow-2xl p-8 md:p-10 mt-10 mx-auto border border-cyan-700/40 relative z-10">
         <h1 class="text-4xl font-bold text-center text-white mb-4">Guess the RGB</h1>
         <p class="text-center text-gray-300 mb-10">Welcome! Create a new room as the host or join an existing one with its six-digit access code.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -98,13 +98,23 @@
                 </div>
             </div>
         </div>
+        <div class="mt-8">
+            <div class="bg-gray-800/80 rounded-2xl border border-emerald-500/40 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div>
+                    <p class="text-sm uppercase tracking-widest text-emerald-200 mb-2">Learning mode</p>
+                    <h2 class="text-2xl font-semibold text-white mb-3">Practice color matching solo</h2>
+                    <p class="text-sm text-gray-300 max-w-2xl">Experiment with the sliders, reveal the target, and understand how scoring works—no room required.</p>
+                </div>
+                <button id="learning-mode-btn" class="bg-emerald-400 hover:bg-emerald-300 text-gray-900 font-bold py-3 px-6 rounded-xl transition-colors">Open learning mode</button>
+            </div>
+        </div>
         <p id="entry-error" class="text-center text-sm text-red-400 mt-6 hidden">Unable to continue. Please try again.</p>
     </div>
 
-    <div id="game-screen" class="hidden w-full max-w-4xl mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 mt-10">
+    <div id="game-screen" class="hidden w-full max-w-4xl lg:max-w-[90vw] xl:max-w-[85vw] mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 mt-10 relative" style="display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;">
         <h1 class="text-3xl font-bold text-center text-white mb-4">Guess the RGB</h1>
-        <p class="text-xs text-center text-gray-400 mb-4">Round <span id="round-number">1</span> of <span id="round-total">∞</span></p>
-        <div id="player-info-wrapper" class="space-y-1 mb-4">
+        <p id="round-info" class="text-xs text-center text-gray-400 mb-4 hidden">Round <span id="round-number">1</span> of <span id="round-total">∞</span></p>
+        <div id="player-info-wrapper" class="space-y-1 mb-4 hidden">
             <p class="text-xs text-center text-gray-500 mb-0">
                 Player: <span id="user-id-display" class="font-mono text-cyan-400">Loading...</span>
                 (<span id="role-display" class="font-bold text-yellow-400">Player</span>)
@@ -118,9 +128,8 @@
             <div id="target-color-box" class="w-full h-32 md:h-40 rounded-lg border-4 border-gray-700 color-box"></div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div id="host-panel" class="hidden mb-6">
-                <div class="bg-gradient-to-br from-gray-900/60 via-gray-900/80 to-gray-800/80 border border-cyan-500 rounded-2xl p-6 space-y-6 shadow-[0_0_30px_rgba(14,165,233,0.35)]">
+        <div id="host-panel" class="hidden mb-6">
+            <div class="bg-gradient-to-br from-gray-900/60 via-gray-900/80 to-gray-800/80 border border-cyan-500 rounded-2xl p-6 space-y-6 shadow-[0_0_30px_rgba(14,165,233,0.35)]">
                 <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div class="space-y-1">
                         <p class="text-xs uppercase tracking-widest text-cyan-300">Host view</p>
@@ -137,27 +146,46 @@
                     </div>
                 </div>
 
-                <div id="room-code-wrapper" class="bg-gray-900/80 border border-cyan-600/40 rounded-2xl p-4 space-y-2 text-center">
-                    <p class="text-xs uppercase tracking-widest text-cyan-300">Room code</p>
-                    <p id="room-code-display" class="text-3xl font-mono font-bold text-white tracking-[0.35em]">------</p>
-                    <p class="text-[11px] text-gray-400">Share this key with players so they can join.</p>
-                </div>
-
-                <div id="host-scoreboard" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        <span>Player</span>
-                        <span>Total</span>
+                <div class="grid grid-cols-1 lg:grid-cols-[2.2fr_1fr] gap-4 items-stretch">
+                <div id="room-code-wrapper" class="w-full aspect-square max-h-[540px] bg-gradient-to-br from-cyan-900/50 via-slate-900 to-slate-900 border border-cyan-500/50 rounded-3xl p-5 text-center flex flex-col items-center justify-between gap-4">
+                    <p class="text-sm uppercase tracking-[0.35em] text-cyan-200">Room code</p>
+                    <p id="room-code-display" class="text-4xl md:text-5xl font-mono font-extrabold text-white tracking-[0.4em]">------</p>
+                    <div id="qr-code-container" class="flex justify-center py-3">
+                        <div class="bg-white rounded-2xl p-4 shadow-2xl inline-flex">
+                            <img id="qr-code-image" class="w-72 h-72 md:w-80 md:h-80" alt="QR Code" />
+                        </div>
                     </div>
-                    <ul id="host-scoreboard-list" class="space-y-2 max-h-52 overflow-y-auto pr-1 text-sm text-gray-300">
-                        <li class="text-center text-gray-500">Waiting for players...</li>
-                    </ul>
+                    <p class="text-xs text-cyan-100">Share the link or let players scan this QR to join instantly.</p>
                 </div>
 
-                <div id="round-config" class="space-y-3">
-                    <label for="round-count" class="block text-sm font-medium text-gray-300">Rounds to play</label>
-                    <input id="round-count" type="number" min="1" max="99" value="5" class="w-full bg-gray-900 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
-                    <button id="confirm-round-count-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Confirm rounds &amp; start game</button>
-                    <p id="round-count-error" class="text-red-400 text-xs mt-2 hidden">Please enter a number between 1 and 99.</p>
+                <div class="flex flex-col gap-4 h-full w-full">
+                    <div id="host-scoreboard" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 space-y-3 flex-1">
+                        <div class="flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            <span>Player</span>
+                            <span>Total</span>
+                        </div>
+                        <ul id="host-scoreboard-list" class="space-y-2 max-h-52 overflow-y-auto pr-1 text-sm text-gray-300">
+                            <li class="text-center text-gray-500">Waiting for players...</li>
+                        </ul>
+                    </div>
+
+                    <div id="round-config" class="bg-gray-900/70 border border-gray-700 rounded-2xl p-2.5 sm:p-3 space-y-2 text-xs w-full max-w-sm self-end">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-[0.35em] text-gray-400">Rounds</p>
+                            <p class="text-sm font-semibold text-white">Configure game length</p>
+                        </div>
+                        <input id="round-count" type="number" min="1" max="99" value="5" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-xs" />
+                        <div class="pt-2 border-t border-gray-800 mt-1">
+                            <p class="text-[10px] uppercase tracking-[0.35em] text-gray-400">Round time (seconds)</p>
+                            <p class="text-[11px] text-gray-300 mb-1">Choose how long players get to submit guesses.</p>
+                            <input id="round-duration" type="number" min="15" max="180" value="30" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-xs" />
+                            <p id="round-duration-error" class="text-red-400 text-xs mt-1 hidden">Enter a time between 15 and 180 seconds.</p>
+                        </div>
+                        <button id="confirm-round-count-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-1.5 rounded-lg transition-colors text-xs">Confirm &amp; start</button>
+                        <p id="round-count-error" class="text-red-400 text-xs mt-1 hidden">Please enter a number between 1 and 99.</p>
+                    </div>
+                </div>
+
                 </div>
 
                 <button id="show-winner-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold py-3 rounded-xl transition-colors hidden">
@@ -193,14 +221,13 @@
             </div>
         </div>
         </div>
+        </div>
 
-        <div id="feedback-message" class="h-16 text-center text-xl font-medium text-gray-200 flex items-center justify-center p-2 rounded-lg bg-gray-700/50 mb-6">
+        <div id="feedback-message" class="hidden h-16 text-center text-xl font-medium text-gray-200 flex items-center justify-center p-2 rounded-lg bg-gray-700/50 mb-6">
             Waiting for the host to start the game...
         </div>
 
-        <div id="player-panel" class="lg:col-span-2">
-            <h2 class="text-xl font-semibold text-white mt-8 mb-4 border-b border-gray-700 pb-2">My guess</h2>
-
+        <div id="player-panel" class="hidden">
         <div id="guess-controls" class="space-y-5 mb-6">
             <div>
                 <div class="flex justify-between items-center mb-1">
@@ -258,6 +285,7 @@
             </div>
         </div>
 
+        <div id="scoreboard-section" class="hidden">
         <h2 class="text-xl font-semibold text-white mt-8 mb-4 border-b border-gray-700 pb-2">Scoreboard <span id="results-round-number">1</span></h2>
         <div id="guesses-table-container" class="overflow-x-auto bg-gray-700 rounded-lg p-3">
             <table class="min-w-full divide-y divide-gray-600">
@@ -278,6 +306,7 @@
         <div id="correct-answer" class="text-center text-md text-gray-400 mt-3 hidden"></div>
         <div id="winner-announcement" class="text-center text-lg font-semibold text-cyan-300 mt-4 hidden"></div>
         </div>
+        </div>
 
     </div>
 
@@ -285,7 +314,7 @@
         <div class="bg-gray-800 border border-cyan-500 rounded-2xl p-8 w-full max-w-3xl shadow-2xl text-center">
             <h3 class="text-2xl font-bold text-white mb-6">Round summary</h3>
             <div class="flex flex-col md:flex-row gap-6 mb-6">
-                <div class="flex-1">
+                <div class="flex-1" id="histogram-column">
                     <h4 class="text-lg font-semibold text-gray-200 mb-3">Score histogram</h4>
                     <div id="histogram-container" class="flex items-end justify-center gap-4 min-h-[180px]"></div>
                 </div>
@@ -296,6 +325,67 @@
             </div>
             <button id="overlay-next-round-btn" class="hidden w-full md:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-6 rounded-md transition-colors mx-auto">Start next round</button>
             <p id="overlay-waiting-msg" class="text-gray-300 text-sm">Waiting for host to start next round...</p>
+        </div>
+    </div>
+
+    <div id="learning-mode-overlay" class="fixed inset-0 bg-gray-950/90 z-50 hidden items-center justify-center p-4">
+        <div class="bg-gray-900 border border-emerald-400/40 rounded-3xl w-full max-w-4xl shadow-2xl p-6 space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.4em] text-emerald-200">Learning mode</p>
+                    <h3 class="text-3xl font-bold text-white">Practice color intuition</h3>
+                    <p class="text-sm text-gray-300">Adjust the sliders to match the hidden target. Reveal results instantly and randomize new colors.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="learning-new-target-btn" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold">New color</button>
+                    <button id="learning-close-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white">Exit</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="bg-gray-800/80 rounded-2xl border border-gray-700 p-4">
+                        <p class="text-xs uppercase tracking-[0.35em] text-gray-400">Target</p>
+                        <div id="learning-target-box" class="w-full h-40 rounded-xl border border-gray-600 mt-3"></div>
+                        <p id="learning-target-label" class="text-sm text-gray-300 mt-2 font-mono">RGB(?, ?, ?)</p>
+                    </div>
+                    <div class="bg-gray-800/80 rounded-2xl border border-gray-700 p-4">
+                        <p class="text-xs uppercase tracking-[0.35em] text-gray-400">Your guess</p>
+                        <div id="learning-guess-box" class="w-full h-40 rounded-xl border border-gray-600 mt-3"></div>
+                        <p id="learning-guess-label" class="text-sm text-gray-300 mt-2 font-mono">RGB(128, 128, 128)</p>
+                        <p id="learning-score-label" class="text-lg font-semibold text-emerald-300 mt-3">Score: --</p>
+                    </div>
+                </div>
+                <div class="bg-gray-800/80 rounded-2xl border border-gray-700 p-4 space-y-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.35em] text-gray-400">Adjust sliders</p>
+                        <p class="text-sm text-gray-300">Scores range from 0-100. Aim for 100 for a perfect match.</p>
+                    </div>
+                    <div class="space-y-5">
+                        <div>
+                            <div class="flex justify-between text-sm font-semibold text-red-300 mb-1">
+                                <span>Red</span>
+                                <span id="learning-red-value">128</span>
+                            </div>
+                            <input id="learning-red-slider" type="range" min="0" max="255" value="128" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm font-semibold text-green-300 mb-1">
+                                <span>Green</span>
+                                <span id="learning-green-value">128</span>
+                            </div>
+                            <input id="learning-green-slider" type="range" min="0" max="255" value="128" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm font-semibold text-blue-300 mb-1">
+                                <span>Blue</span>
+                                <span id="learning-blue-value">128</span>
+                            </div>
+                            <input id="learning-blue-slider" type="range" min="0" max="255" value="128" class="w-full">
+                        </div>
+                    </div>
+                    <p id="learning-tip" class="text-xs text-gray-400 italic">Tip: Start by matching one channel at a time.</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -329,7 +419,7 @@
         const db = getFirestore(app);
         getAnalytics(app);
 
-        const GUESS_TIME_LIMIT_MS = 30000;
+        const DEFAULT_ROUND_DURATION_MS = 30000;
 
         const targetColorBox = document.getElementById("target-color-box");
         const targetColorWrapper = document.getElementById("target-color-wrapper");
@@ -355,6 +445,7 @@
         const playerActionBtns = document.getElementById("player-action-btns");
         const roundOverlay = document.getElementById("round-overlay");
         const histogramContainer = document.getElementById("histogram-container");
+        const histogramColumn = document.getElementById("histogram-column");
         const roundSummaryColors = document.getElementById("round-summary-colors");
         const overlayNextRoundBtn = document.getElementById("overlay-next-round-btn");
         const overlayWaitingMsg = document.getElementById("overlay-waiting-msg");
@@ -368,6 +459,7 @@
         const joinCodeInput = document.getElementById("join-code-input");
         const entryError = document.getElementById("entry-error");
         const roomCodeDisplay = document.getElementById("room-code-display");
+        const qrCodeImage = document.getElementById("qr-code-image");
         const playerRoomCodeDisplay = document.getElementById("player-room-code");
         const showWinnerBtn = document.getElementById("show-winner-btn");
         const waitingRoomDemo = document.getElementById("waiting-room-demo");
@@ -385,12 +477,47 @@
         const hostScoreboardList = document.getElementById("host-scoreboard-list");
         const hostRoundNumberDisplay = document.getElementById("host-round-number");
         const roundCountInput = document.getElementById("round-count");
+        const roundDurationInput = document.getElementById("round-duration");
         const roundConfig = document.getElementById("round-config");
         const roundCountError = document.getElementById("round-count-error");
+        const roundDurationError = document.getElementById("round-duration-error");
         const confirmRoundCountBtn = document.getElementById("confirm-round-count-btn");
         const roundTotalDisplay = document.getElementById("round-total");
+        const learningModeBtn = document.getElementById("learning-mode-btn");
+        const learningOverlay = document.getElementById("learning-mode-overlay");
+        const learningCloseBtn = document.getElementById("learning-close-btn");
+        const learningNewTargetBtn = document.getElementById("learning-new-target-btn");
+        const learningTargetBox = document.getElementById("learning-target-box");
+        const learningGuessBox = document.getElementById("learning-guess-box");
+        const learningTargetLabel = document.getElementById("learning-target-label");
+        const learningGuessLabel = document.getElementById("learning-guess-label");
+        const learningScoreLabel = document.getElementById("learning-score-label");
+        const learningTip = document.getElementById("learning-tip");
+        const learningRedSlider = document.getElementById("learning-red-slider");
+        const learningGreenSlider = document.getElementById("learning-green-slider");
+        const learningBlueSlider = document.getElementById("learning-blue-slider");
+        const learningRedValue = document.getElementById("learning-red-value");
+        const learningGreenValue = document.getElementById("learning-green-value");
+        const learningBlueValue = document.getElementById("learning-blue-value");
 
         const nicknameModal = document.getElementById("nickname-modal");
+
+        if (feedbackMessage) {
+            feedbackMessage.tabIndex = 0;
+            feedbackMessage.setAttribute("role", "status");
+            feedbackMessage.addEventListener("click", () => {
+                requestEarlyRoundEnd();
+            });
+            feedbackMessage.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    requestEarlyRoundEnd();
+                }
+            });
+        }
+        endRoundEarlyBtn?.addEventListener("click", () => {
+            requestEarlyRoundEnd();
+        });
         const nicknameInput = document.getElementById("nickname-input");
         const saveNicknameBtn = document.getElementById("save-nickname-btn");
         const cancelNicknameBtn = document.getElementById("cancel-nickname-btn");
@@ -412,18 +539,22 @@
         let roundStatus = "WAITING";
         let gameStatus = "WAITING";
         let guessEndTime = 0;
+        let roundStartTime = 0;
         let timerInterval = null;
         let isFinalizingRound = false;
         let playerDocExists = false;
         let lastHistogramRound = null;
         let roundLimit = Infinity;
+        let roundDurationMs = DEFAULT_ROUND_DURATION_MS;
         let summaryHasNextRound = false;
         let pendingGuessSaveTimeout = null;
         let currentRoundSubmissions = new Set();
+        let lastTimeBonus = 0;
         let musicEnabled = true;
         let sfxEnabled = true;
         let currentMusic = null;
         let warningBellPlayed = false;
+        let learningTargetColor = { r: 128, g: 128, b: 128 };
         const waitingMusic = new Audio("music/Waiting Room Jumps.mp3");
         waitingMusic.loop = true;
         waitingMusic.volume = 0.3;
@@ -440,22 +571,6 @@
         const warningBellSfx = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_f5df3b3dbe.mp3?filename=bell-notification-126903.mp3");
         warningBellSfx.volume = 0.6;
 
-        if (feedbackMessage) {
-            feedbackMessage.tabIndex = 0;
-            feedbackMessage.setAttribute("role", "status");
-            feedbackMessage.addEventListener("click", () => {
-                requestEarlyRoundEnd();
-            });
-            feedbackMessage.addEventListener("keydown", (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    requestEarlyRoundEnd();
-                }
-            });
-        }
-
-        endRoundEarlyBtn?.addEventListener("click", () => requestEarlyRoundEnd());
-
         function generateRoomCode() {
             const min = 10 ** (ROOM_CODE_LENGTH - 1);
             const max = 10 ** ROOM_CODE_LENGTH - 1;
@@ -470,6 +585,9 @@
                 playerRoomCodeDisplay.textContent = `Room code: ${code}`;
                 playerRoomCodeDisplay.classList.remove("hidden");
             }
+            // Generate QR code for the game link
+            const gameUrl = `${window.location.origin}${window.location.pathname}?game=${code}`;
+            qrCodeImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(gameUrl)}`;
         }
 
         function clearActiveGameCode() {
@@ -500,8 +618,67 @@
             const totalDiff = diffR + diffG + diffB;
             const maxDiff = 255 * 3;
             const rawScore = Math.max(0, Math.round(100 * (1 - totalDiff / maxDiff)));
-            const penalizedScore = Math.round(Math.pow(rawScore / 100, 1.5) * 100);
+            const penalizedScore = Math.round((Math.pow(rawScore / 100, 1.5)) * 100);
             return penalizedScore;
+        }
+
+        function openLearningMode() {
+            if (!learningOverlay) return;
+            learningOverlay.classList.remove("hidden");
+            document.body.classList.add("overflow-hidden");
+            refreshLearningTargetColor();
+            updateLearningGuessPreview();
+        }
+
+        function closeLearningMode() {
+            if (!learningOverlay) return;
+            learningOverlay.classList.add("hidden");
+            document.body.classList.remove("overflow-hidden");
+        }
+
+        function refreshLearningTargetColor() {
+            learningTargetColor = {
+                r: getRandomColorValue(),
+                g: getRandomColorValue(),
+                b: getRandomColorValue()
+            };
+            if (learningTargetBox) {
+                learningTargetBox.style.backgroundColor = `rgb(${learningTargetColor.r}, ${learningTargetColor.g}, ${learningTargetColor.b})`;
+            }
+            if (learningTargetLabel) {
+                learningTargetLabel.textContent = `RGB(${learningTargetColor.r}, ${learningTargetColor.g}, ${learningTargetColor.b})`;
+            }
+            updateLearningGuessPreview();
+            if (learningTip) {
+                const tips = [
+                    "Tip: Match one slider at a time.",
+                    "Tip: Overshoot intentionally, then dial back.",
+                    "Tip: Compare against grayscale (equal RGB) baselines.",
+                    "Tip: High score? Try hiding the target and guessing!"
+                ];
+                learningTip.textContent = tips[Math.floor(Math.random() * tips.length)];
+            }
+        }
+
+        function updateLearningGuessPreview() {
+            if (!learningGuessBox) return;
+            const guess = {
+                r: parseInt(learningRedSlider?.value ?? "128", 10),
+                g: parseInt(learningGreenSlider?.value ?? "128", 10),
+                b: parseInt(learningBlueSlider?.value ?? "128", 10)
+            };
+            learningGuessBox.style.backgroundColor = `rgb(${guess.r}, ${guess.g}, ${guess.b})`;
+            if (learningGuessLabel) {
+                learningGuessLabel.textContent = `RGB(${guess.r}, ${guess.g}, ${guess.b})`;
+            }
+            if (learningRedValue) learningRedValue.textContent = guess.r;
+            if (learningGreenValue) learningGreenValue.textContent = guess.g;
+            if (learningBlueValue) learningBlueValue.textContent = guess.b;
+            if (learningScoreLabel) {
+                const score = calculateScore(learningTargetColor.r, learningTargetColor.g, learningTargetColor.b, guess.r, guess.g, guess.b);
+                const quality = score >= 95 ? "Perfect!" : score >= 80 ? "Great work" : score >= 60 ? "Close" : "Keep tweaking";
+                learningScoreLabel.textContent = `Score: ${score} pts · ${quality}`;
+            }
         }
 
         function openNicknameModal(prefill = "") {
@@ -541,10 +718,10 @@
         }
 
         function playMusic(track) {
-            // Play a music track for all clients (if music enabled). Ensure
+            // Play a music track for host only (if music enabled). Ensure
             // only one track is audible at once and do not reset playback
             // position when switching back to a previously-playing track.
-            if (!musicEnabled || !track) return;
+            if (!musicEnabled || !(isHost || isAdmin) || !track) return;
             try {
                 if (currentMusic === track && !track.paused) return;
                 if (currentMusic && currentMusic !== track) {
@@ -632,7 +809,10 @@
             if (sessionInitialized) return;
             sessionInitialized = true;
             entryScreen.classList.add("hidden");
+            entryScreen.style.display = "none";
+            gameScreen.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; left: auto !important;";
             gameScreen.classList.remove("hidden");
+            feedbackMessage.classList.remove("hidden");
             await checkAndSetNickname();
             listenToPlayers();
             listenToGameState();
@@ -850,7 +1030,6 @@
             stopTimer();
             feedbackMessage.textContent = "Ending round early...";
             feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-amber-600/60";
-            feedbackMessage.setAttribute("role", "status");
             await finalizeRound();
         }
 
@@ -869,7 +1048,7 @@
             if (isGuessingActive && !isAdmin) {
                 submitGuessBtn.textContent = "Submit guess";
             } else if (roundStatus === "GUESSING" && hasGuessed) {
-                submitGuessBtn.textContent = "Guess submitted (waiting...)";
+                submitGuessBtn.textContent = `✓ Submitted (+${lastTimeBonus} bonus)`;
             } else if (isAdmin) {
                 submitGuessBtn.textContent = "Hosts do not submit guesses";
             } else {
@@ -885,6 +1064,10 @@
 
             const hostControlsActive = isAdmin || isHost;
             if (hostControlsActive) {
+                playerInfoWrapper?.classList.remove("hidden");
+                document.getElementById("round-info")?.classList.remove("hidden");
+                document.getElementById("scoreboard-section")?.classList.remove("hidden");
+                document.getElementById("player-panel")?.classList.remove("hidden");
                 guessControls.classList.remove("hidden");
                 startNewRoundBtn.classList.toggle("hidden", isPreGame);
                 waitingRoomDemo?.classList.toggle("hidden", !isPreGame);
@@ -910,6 +1093,7 @@
                     }
                 }
             } else {
+                document.getElementById("player-panel")?.classList.remove("hidden");
                 guessControls.classList.remove("hidden");
                 startNewRoundBtn.classList.add("hidden");
                 waitingRoomDemo?.classList.add("hidden");
@@ -936,22 +1120,34 @@
             }
         }
 
-        function showHistogram(results) {
+        function showHistogram(results, isFinalRound = false) {
             lastHistogramRound = currentRound;
-            const hasMoreRounds = Number.isFinite(roundLimit) ? currentRound < roundLimit : true;
+            const hasMoreRounds = !isFinalRound && (Number.isFinite(roundLimit) ? currentRound < roundLimit : true);
             summaryHasNextRound = hasMoreRounds;
             if (isAdmin) {
-                overlayNextRoundBtn.textContent = "Close summary";
+                histogramColumn?.classList.remove("hidden");
+                if (isFinalRound) {
+                    overlayNextRoundBtn.textContent = "Show final winner";
+                } else {
+                    overlayNextRoundBtn.textContent = "Close summary";
+                }
                 overlayNextRoundBtn.classList.remove("hidden");
-                overlayWaitingMsg.textContent = hasMoreRounds
-                    ? "Use the host panel to start the next round when you're ready."
-                    : "This was the final round. When you close this summary the winner screen will appear.";
+                if (isFinalRound) {
+                    overlayWaitingMsg.textContent = "Click 'Show final winner' to reveal the champion!";
+                } else {
+                    overlayWaitingMsg.textContent = hasMoreRounds
+                        ? "Use the host panel to start the next round when you're ready."
+                        : "This was the final round. When you close this summary the winner screen will appear.";
+                }
                 overlayWaitingMsg.classList.remove("hidden");
             } else {
+                histogramColumn?.classList.add("hidden");
                 overlayNextRoundBtn.classList.add("hidden");
-                overlayWaitingMsg.textContent = hasMoreRounds
-                    ? "Waiting for host to start next round..."
-                    : "Game complete. Waiting for host to reveal the winner.";
+                overlayWaitingMsg.textContent = isFinalRound
+                    ? "Game complete! Waiting for host to reveal the winner..."
+                    : hasMoreRounds
+                        ? "Waiting for host to start next round..."
+                        : "Game complete. Waiting for host to reveal the winner.";
                 overlayWaitingMsg.classList.remove("hidden");
             }
 
@@ -961,76 +1157,91 @@
                     <div class="text-center text-xs text-gray-400">No guesses have been recorded yet.</div>
                 `;
             } else {
-                const maxScore = Math.max(...results.map((r) => r.score ?? 0), 1);
-                const barWidth = Math.max(48, Math.floor(300 / Math.max(results.length, 1)));
-                const columnHeight = 200;
-                const histogramData = results.slice(0, 8);
-                histogramContainer.innerHTML = histogramData
-                    .map((result) => {
-                        const score = result.score ?? 0;
-                        const nickname = result.nickname ?? (result.userId ? `${result.userId.slice(0, 8)}...` : "Player");
-                        const barHeight = Math.max(12, Math.round((score / maxScore) * columnHeight));
-                        const barColor = `rgb(${result.r}, ${result.g}, ${result.b})`;
-                        return `
-                            <div class="flex flex-col items-center justify-end" style="width:${barWidth}px">
-                                <div class="flex items-end justify-center w-full" style="height:${columnHeight}px">
-                                    <div class="w-8 rounded-t-md shadow-lg border border-gray-300/40" style="height:${barHeight}px; background:${barColor};"></div>
-                                </div>
-                                <div class="mt-2 text-xs text-gray-200 leading-tight text-center overflow-hidden text-ellipsis whitespace-nowrap w-full">${nickname}</div>
-                                <div class="text-[10px] text-gray-400 leading-tight text-center whitespace-nowrap">RGB(${result.r}, ${result.g}, ${result.b})</div>
-                                <div class="text-xs font-semibold text-teal-300">${score}</div>
-                            </div>
-                        `;
-                    })
-                    .join("");
-
-                const leaderboardEntries = Object.values(allPlayersData)
-                    .filter((player) => player && !player.isHost)
-                    .map((player) => ({
-                        nickname: player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Player"),
-                        totalScore: Number(player.totalScore ?? 0)
-                    }))
-                    .sort((a, b) => b.totalScore - a.totalScore);
-
-                const leaderboardHtml = leaderboardEntries.length
-                    ? leaderboardEntries.slice(0, 8)
-                          .map((entry, index) => `
-                            <div class="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-700 bg-gray-900/60 text-sm text-gray-200">
-                                <span>#${index + 1} ${entry.nickname}</span>
-                                <span class="font-semibold text-cyan-300">${entry.totalScore}</span>
-                            </div>
-                        `)
-                          .join("")
-                    : `<div class="text-sm text-gray-400 text-center">No leaderboard data yet.</div>`;
-
-                roundSummaryColors.innerHTML = `
-                    <div class="space-y-5">
-                        <div class="flex items-center justify-between rounded-xl border border-gray-600 bg-gray-900/60 px-4 py-3">
-                            <div>
-                                <p class="text-xs uppercase tracking-widest text-gray-400">Target</p>
-                                <p class="text-sm text-gray-200 font-semibold">RGB(${targetColor.r}, ${targetColor.g}, ${targetColor.b})</p>
-                            </div>
-                            <div class="w-16 h-8 rounded border border-gray-500" style="background-color: rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b});"></div>
-                        </div>
-
+                const sortedByScore = [...results].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+                const targetCard = `
+                    <div class="flex items-center justify-between rounded-xl border border-gray-600 bg-gray-900/60 px-4 py-3">
                         <div>
-                            <h5 class="text-sm font-semibold text-gray-200 mb-2">Total leaderboard</h5>
-                            <div class="space-y-2 max-h-48 overflow-y-auto">
-                                ${leaderboardHtml}
+                            <p class="text-xs uppercase tracking-widest text-gray-400">Target color</p>
+                            <p class="text-sm text-gray-200 font-semibold">RGB(${targetColor.r}, ${targetColor.g}, ${targetColor.b})</p>
+                        </div>
+                        <div class="w-24 h-12 rounded-xl border border-gray-500" style="background-color: rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b});"></div>
+                    </div>`;
+
+                if (isAdmin) {
+                    const topFive = sortedByScore.slice(0, 5);
+                    histogramContainer.innerHTML = topFive.length
+                        ? `<div class="flex flex-col gap-3 w-full">
+                            ${topFive
+                                .map((result, idx) => {
+                                    const nickname = result.nickname ?? (result.userId ? `${result.userId.slice(0, 8)}...` : "Player");
+                                    const color = `rgb(${result.r}, ${result.g}, ${result.b})`;
+                                    return `
+                                        <div class="flex items-center justify-between rounded-2xl border border-gray-700 bg-gray-900/70 px-4 py-3">
+                                            <div class="flex-1">
+                                                <p class="text-xs uppercase tracking-widest text-gray-500">#${idx + 1}</p>
+                                                <p class="text-base font-semibold text-white truncate">${nickname}</p>
+                                                <p class="text-sm text-gray-400">Score: ${result.score ?? 0}</p>
+                                                <p class="text-xs text-gray-500 font-mono">RGB(${result.r}, ${result.g}, ${result.b})</p>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-12 h-12 rounded-lg border border-gray-600" style="background:${color};"></div>
+                                                <div class="text-right text-xs text-gray-400">
+                                                    <p>Bonus: ${result.bonus ?? 0}</p>
+                                                    <p>Total: ${result.totalScore ?? (result.score ?? 0)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                })
+                                .join("")}
+                          </div>`
+                        : `<p class="text-gray-300 text-sm w-full text-center">No host data available.</p>`;
+
+                    roundSummaryColors.innerHTML = `
+                        <div class="space-y-4">
+                            ${targetCard}
+                        </div>
+                    `;
+                } else {
+                    const playerResult = results.find((r) => r.userId === userId);
+                    const rank = playerResult ? sortedByScore.findIndex((r) => r.userId === playerResult.userId) + 1 : null;
+                    histogramContainer.innerHTML = `<p class="text-gray-400 text-sm text-center">Waiting for host...</p>`;
+
+                    roundSummaryColors.innerHTML = `
+                        <div class="space-y-4">
+                            ${targetCard}
+                            <div class="rounded-xl border border-gray-600 bg-gray-900/60 px-4 py-3">
+                                <p class="text-xs uppercase tracking-widest text-gray-400">Your guess</p>
+                                ${playerResult
+                                    ? `<div class="flex items-center justify-between mt-2">
+                                            <div>
+                                                <p class="text-sm text-gray-200 font-semibold">RGB(${playerResult.r}, ${playerResult.g}, ${playerResult.b})</p>
+                                                <p class="text-xs text-gray-400">Score: ${playerResult.score ?? 0}</p>
+                                            </div>
+                                            <div class="w-24 h-12 rounded-xl border border-gray-500" style="background-color: rgb(${playerResult.r}, ${playerResult.g}, ${playerResult.b});"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-2">${rank ? `Current place: #${rank}` : "Place pending"}</p>`
+                                    : `<p class="text-sm text-gray-400 mt-2">No guess recorded this round.</p>`}
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             }
 
             summaryHasNextRound = hasMoreRounds;
             if (isAdmin) {
-                overlayNextRoundBtn.textContent = hasMoreRounds ? "Start next round" : "Close summary";
+                if (isFinalRound) {
+                    overlayNextRoundBtn.textContent = "Show final winner";
+                } else {
+                    overlayNextRoundBtn.textContent = hasMoreRounds ? "Start next round" : "Close summary";
+                }
                 overlayNextRoundBtn.classList.remove("hidden");
                 overlayWaitingMsg.classList.add("hidden");
             } else {
                 overlayNextRoundBtn.classList.add("hidden");
-                overlayWaitingMsg.textContent = hasMoreRounds ? "Waiting for host to start next round..." : "Game complete. Waiting for host.";
+                overlayWaitingMsg.textContent = isFinalRound
+                    ? "Game complete! Waiting for host to reveal the winner..."
+                    : hasMoreRounds ? "Waiting for host to start next round..." : "Game complete. Waiting for host.";
                 overlayWaitingMsg.classList.remove("hidden");
             }
 
@@ -1059,7 +1270,10 @@
                 b: parseInt(blueSlider.value, 10),
                 round: currentRound,
                 gameId,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                targetR: targetColor.r,
+                targetG: targetColor.g,
+                targetB: targetColor.b
             };
 
             try {
@@ -1075,7 +1289,13 @@
                 }, { merge: true });
                 hasGuessed = true;
                 if (!isAuto) {
-                    feedbackMessage.textContent = "Your guess was submitted!";
+                    const totalDuration = Math.max(1000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                    const deadline = roundStartTime ? roundStartTime + totalDuration : guessEndTime;
+                    const msRemaining = Math.max(0, (deadline || Date.now()) - guess.timestamp);
+                    lastTimeBonus = Math.max(0, Math.round(10 * (msRemaining / totalDuration)));
+                    feedbackMessage.textContent = `Guess submitted! Time bonus: +${lastTimeBonus} points`;
+                    feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-green-600/70";
+                    submitGuessBtn.textContent = `✓ Submitted (+${lastTimeBonus} bonus)`;
                     playSfx(submitSfx);
                 }
             } finally {
@@ -1233,16 +1453,15 @@
                     currentRound = incomingRound;
                     currentRoundSubmissions = new Set();
                     hasGuessed = false;
+                    lastTimeBonus = 0;
                     warningBellPlayed = false;
                 } else {
                     currentRound = incomingRound;
                 }
                 roundStatus = data.roundStatus;
                 gameStatus = data.gameStatus ?? "WAITING";
-                if (gameStatus === "AWAITING_WINNER" && (isHost || isAdmin)) {
-                    playWinnerMusic();
-                }
                 guessEndTime = data.guessEndTime ?? 0;
+                roundStartTime = data.roundStartTime ?? (guessEndTime ? guessEndTime - (data.roundDurationMs ?? roundDurationMs) : Date.now());
                 if (data.gameStatus === "SHOW_WINNER") {
                     if (isHost || isAdmin) {
                         stopAllMusic();
@@ -1252,6 +1471,12 @@
                 }
                 if (typeof data.roundLimit === "number" && data.roundLimit > 0) {
                     roundLimit = data.roundLimit;
+                }
+                if (typeof data.roundDurationMs === "number" && data.roundDurationMs > 0) {
+                    roundDurationMs = data.roundDurationMs;
+                    if (isAdmin && roundDurationInput) {
+                        roundDurationInput.value = Math.round(roundDurationMs / 1000);
+                    }
                 }
                 roundTotalDisplay.textContent = Number.isFinite(roundLimit) ? roundLimit : "∞";
 
@@ -1278,17 +1503,15 @@
                     playGameMusic();
                 } else if (roundStatus === "SCORED") {
                     stopTimer();
-                    feedbackMessage.textContent = "Round finished! Scores have been calculated.";
-                    feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-yellow-600";
                     correctAnswer.classList.remove("hidden");
                 if (Array.isArray(data.lastRoundResults) && data.round !== lastHistogramRound) {
                     const isFinal = data.gameStatus === "AWAITING_WINNER" || (Number.isFinite(data.roundLimit) && data.roundLimit - data.round <= 0);
-                    if (isFinal) {
-                        // Skip the summary overlay on the final round and go straight to the end screen
-                        try { playWinnerMusic(); } catch (e) {}
+                    if (data.gameStatus === "SHOW_WINNER") {
+                        // Host has clicked to show winner, navigate all clients
                         window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
                     } else {
-                        showHistogram(data.lastRoundResults);
+                        // Show histogram, passing isFinal flag if this is the last round
+                        showHistogram(data.lastRoundResults, isFinal);
                     }
                 }
             } else {
@@ -1327,10 +1550,15 @@
             try {
                 const guessesSnapshot = await getDocs(query(guessesCollectionRef, where("gameId", "==", gameId), where("round", "==", currentRound)));
                 const results = [];
-                const roundDeadline = guessEndTime || Date.now();
+                const durationForRound = Math.max(1000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                const deadlineFallback = guessEndTime || Date.now();
+                const startFallback = roundStartTime || (deadlineFallback - durationForRound);
+                const roundDeadline = Math.max(deadlineFallback, startFallback + durationForRound);
+                const roundStartForHistory = startFallback;
                 const computeBonus = (timestamp) => {
-                    const msRemaining = Math.max(0, roundDeadline - timestamp);
-                    return Math.min(10, Math.floor(msRemaining / 3000));
+                    const clampedTimestamp = Math.min(roundDeadline, Math.max(roundStartForHistory, timestamp));
+                    const msRemaining = Math.max(0, roundDeadline - clampedTimestamp);
+                    return Math.max(0, Math.round(10 * (msRemaining / durationForRound)));
                 };
                 const batch = writeBatch(db);
                 guessesSnapshot.forEach((docSnap) => {
@@ -1361,7 +1589,7 @@
                         g: Number.isFinite(player.pendingGuessG) ? Number(player.pendingGuessG) : Number.isFinite(player.lastGuessG) ? Number(player.lastGuessG) : 128,
                         b: Number.isFinite(player.pendingGuessB) ? Number(player.pendingGuessB) : Number.isFinite(player.lastGuessB) ? Number(player.lastGuessB) : 128
                     };
-                    const autoTimestamp = Date.now();
+                    const autoTimestamp = roundDeadline;
                     const score = calculateScore(targetColor.r, targetColor.g, targetColor.b, fallback.r, fallback.g, fallback.b);
                     const bonus = 0;
                     const totalScoreForRound = score + bonus;
@@ -1426,7 +1654,12 @@
                     round: currentRound,
                     winner,
                     topResults: results.slice(0, 10),
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    targetR: targetColor.r,
+                    targetG: targetColor.g,
+                    targetB: targetColor.b,
+                    roundStartTime: roundStartForHistory,
+                    roundDurationMs: durationForRound
                 });
 
                 const projectedTotals = {};
@@ -1479,15 +1712,10 @@
 
                 const isFinalRound = Number.isFinite(roundLimit) && roundLimit - currentRound <= 0;
                 if (isFinalRound) {
-                    // Do not show the post-round summary overlay for the final round.
-                    // Transition immediately to the final winner screen instead.
-                    try {
-                        await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
-                    } catch (e) {
-                        // ignore if unable to update (clients will still navigate)
-                    }
-                    playWinnerMusic();
-                    window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
+                    // Show the summary overlay for the final round, but mark it as final
+                    // so the UI hides final standings and shows a host-controlled continue button.
+                    showHistogram(results, true);
+                    playSfx(winnerSfx);
                     return;
                 }
 
@@ -1527,6 +1755,9 @@
                 return;
             }
             try {
+                let appliedStartTime = Date.now();
+                let appliedDuration = Math.max(15000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                let appliedGuessEndTime = appliedStartTime + appliedDuration;
                 await runTransaction(db, async (transaction) => {
                     const snapshot = await transaction.get(gameDocRef);
                     if (!snapshot.exists()) {
@@ -1535,13 +1766,17 @@
                     const data = snapshot.data();
                     const nextRound = (data.round ?? 0) + 1;
                     const newTarget = { r: getRandomColorValue(), g: getRandomColorValue(), b: getRandomColorValue() };
-                    const newGuessEndTime = Date.now() + GUESS_TIME_LIMIT_MS;
+                    appliedStartTime = Date.now();
+                    appliedDuration = Math.max(15000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                    appliedGuessEndTime = appliedStartTime + appliedDuration;
                     const gameUpdate = {
                         adminId: userId,
                         targetColor: newTarget,
                         round: nextRound,
                         roundStatus: "GUESSING",
-                        guessEndTime: newGuessEndTime,
+                        guessEndTime: appliedGuessEndTime,
+                        roundStartTime: appliedStartTime,
+                        roundDurationMs: appliedDuration,
                         timestamp: Date.now(),
                         lastRoundResults: [],
                         finalStandings: [],
@@ -1553,6 +1788,9 @@
                     }
                     transaction.set(gameDocRef, gameUpdate);
                 });
+                roundStartTime = appliedStartTime;
+                guessEndTime = appliedGuessEndTime;
+                roundDurationMs = appliedDuration;
                 hasGuessed = false;
                 winnerAnnouncement.classList.add("hidden");
                 roundOverlay.classList.add("hidden");
@@ -1571,6 +1809,14 @@
                         userId = user.uid;
                         sessionStorage.setItem("rgbUserId", user.uid);
                         hideEntryError();
+                        
+                        // Auto-join if game code is in URL
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const gameCodeFromUrl = urlParams.get('game');
+                        if (gameCodeFromUrl) {
+                            joinCodeInput.value = gameCodeFromUrl;
+                            setTimeout(() => startJoinFlow(), 100);
+                        }
                     } else {
                         sessionStorage.removeItem("rgbUserId");
                         await signInAnonymously(auth);
@@ -1600,6 +1846,18 @@
         practiceGreenSlider?.addEventListener("input", updatePracticePreview);
         practiceBlueSlider?.addEventListener("input", updatePracticePreview);
         updatePracticePreview();
+        learningModeBtn?.addEventListener("click", openLearningMode);
+        learningCloseBtn?.addEventListener("click", closeLearningMode);
+        learningOverlay?.addEventListener("click", (event) => {
+            if (event.target === learningOverlay) {
+                closeLearningMode();
+            }
+        });
+        [learningRedSlider, learningGreenSlider, learningBlueSlider].forEach((slider) => {
+            slider?.addEventListener("input", updateLearningGuessPreview);
+        });
+        learningNewTargetBtn?.addEventListener("click", refreshLearningTargetColor);
+        refreshLearningTargetColor();
         submitGuessBtn.addEventListener("click", () => submitGuess(false));
         startNewRoundBtn.addEventListener("click", async () => {
             startNewRoundBtn.disabled = true;
@@ -1625,8 +1883,8 @@
                     await startNextRound();
                     playGameMusic();
                 } else {
+                    // Final round or show winner button clicked
                     await setDoc(gameDocRef, { gameStatus: "SHOW_WINNER" }, { merge: true });
-                    playWinnerMusic();
                     window.location.href = `/winner.html?game=${encodeURIComponent(gameId)}`;
                 }
             } finally {
@@ -1657,13 +1915,26 @@
 
         confirmRoundCountBtn.addEventListener("click", async () => {
             const desiredRounds = parseInt(roundCountInput.value, 10);
+            const desiredDurationSeconds = parseInt(roundDurationInput.value, 10);
+            let hasError = false;
             if (Number.isNaN(desiredRounds) || desiredRounds < 1 || desiredRounds > 99) {
                 roundCountError.classList.remove("hidden");
-                return;
+                hasError = true;
+            } else {
+                roundCountError.classList.add("hidden");
             }
-            roundCountError.classList.add("hidden");
+            if (Number.isNaN(desiredDurationSeconds) || desiredDurationSeconds < 15 || desiredDurationSeconds > 180) {
+                roundDurationError.classList.remove("hidden");
+                hasError = true;
+            } else {
+                roundDurationError.classList.add("hidden");
+            }
+            if (hasError) return;
+
             const previousLimit = roundLimit;
+            const previousDuration = roundDurationMs;
             roundLimit = desiredRounds;
+            roundDurationMs = desiredDurationSeconds * 1000;
             roundTotalDisplay.textContent = roundLimit;
             feedbackMessage.textContent = "Starting the game...";
             confirmRoundCountBtn.disabled = true;
@@ -1676,6 +1947,7 @@
             } catch (error) {
                 startError = error;
                 roundLimit = previousLimit;
+                roundDurationMs = previousDuration;
                 roundTotalDisplay.textContent = Number.isFinite(previousLimit) ? previousLimit : "∞";
                 roundConfig.classList.remove("hidden");
                 waitingRoomDemo?.classList.remove("hidden");

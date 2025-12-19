@@ -98,6 +98,16 @@
                 </div>
             </div>
         </div>
+        <div class="mt-8">
+            <div class="bg-gray-800/80 rounded-2xl border border-emerald-500/40 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div>
+                    <p class="text-sm uppercase tracking-widest text-emerald-200 mb-2">Learning mode</p>
+                    <h2 class="text-2xl font-semibold text-white mb-3">Practice color matching solo</h2>
+                    <p class="text-sm text-gray-300 max-w-2xl">Experiment with the sliders, reveal the target, and understand how scoring works—no room required.</p>
+                </div>
+                <button id="learning-mode-btn" class="bg-emerald-400 hover:bg-emerald-300 text-gray-900 font-bold py-3 px-6 rounded-xl transition-colors">Open learning mode</button>
+            </div>
+        </div>
         <p id="entry-error" class="text-center text-sm text-red-400 mt-6 hidden">Unable to continue. Please try again.</p>
     </div>
 
@@ -165,6 +175,12 @@
                             <p class="text-sm font-semibold text-white">Configure game length</p>
                         </div>
                         <input id="round-count" type="number" min="1" max="99" value="5" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-xs" />
+                        <div class="pt-2 border-t border-gray-800 mt-1">
+                            <p class="text-[10px] uppercase tracking-[0.35em] text-gray-400">Round time (seconds)</p>
+                            <p class="text-[11px] text-gray-300 mb-1">Choose how long players get to submit guesses.</p>
+                            <input id="round-duration" type="number" min="15" max="180" value="30" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-xs" />
+                            <p id="round-duration-error" class="text-red-400 text-xs mt-1 hidden">Enter a time between 15 and 180 seconds.</p>
+                        </div>
                         <button id="confirm-round-count-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-1.5 rounded-lg transition-colors text-xs">Confirm &amp; start</button>
                         <p id="round-count-error" class="text-red-400 text-xs mt-1 hidden">Please enter a number between 1 and 99.</p>
                     </div>
@@ -312,6 +328,67 @@
         </div>
     </div>
 
+    <div id="learning-mode-overlay" class="fixed inset-0 bg-gray-950/90 z-50 hidden items-center justify-center p-4">
+        <div class="bg-gray-900 border border-emerald-400/40 rounded-3xl w-full max-w-4xl shadow-2xl p-6 space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.4em] text-emerald-200">Learning mode</p>
+                    <h3 class="text-3xl font-bold text-white">Practice color intuition</h3>
+                    <p class="text-sm text-gray-300">Adjust the sliders to match the hidden target. Reveal results instantly and randomize new colors.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="learning-new-target-btn" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold">New color</button>
+                    <button id="learning-close-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white">Exit</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="bg-gray-800/80 rounded-2xl border border-gray-700 p-4">
+                        <p class="text-xs uppercase tracking-[0.35em] text-gray-400">Target</p>
+                        <div id="learning-target-box" class="w-full h-40 rounded-xl border border-gray-600 mt-3"></div>
+                        <p id="learning-target-label" class="text-sm text-gray-300 mt-2 font-mono">RGB(?, ?, ?)</p>
+                    </div>
+                    <div class="bg-gray-800/80 rounded-2xl border border-gray-700 p-4">
+                        <p class="text-xs uppercase tracking-[0.35em] text-gray-400">Your guess</p>
+                        <div id="learning-guess-box" class="w-full h-40 rounded-xl border border-gray-600 mt-3"></div>
+                        <p id="learning-guess-label" class="text-sm text-gray-300 mt-2 font-mono">RGB(128, 128, 128)</p>
+                        <p id="learning-score-label" class="text-lg font-semibold text-emerald-300 mt-3">Score: --</p>
+                    </div>
+                </div>
+                <div class="bg-gray-800/80 rounded-2xl border border-gray-700 p-4 space-y-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.35em] text-gray-400">Adjust sliders</p>
+                        <p class="text-sm text-gray-300">Scores range from 0-100. Aim for 100 for a perfect match.</p>
+                    </div>
+                    <div class="space-y-5">
+                        <div>
+                            <div class="flex justify-between text-sm font-semibold text-red-300 mb-1">
+                                <span>Red</span>
+                                <span id="learning-red-value">128</span>
+                            </div>
+                            <input id="learning-red-slider" type="range" min="0" max="255" value="128" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm font-semibold text-green-300 mb-1">
+                                <span>Green</span>
+                                <span id="learning-green-value">128</span>
+                            </div>
+                            <input id="learning-green-slider" type="range" min="0" max="255" value="128" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm font-semibold text-blue-300 mb-1">
+                                <span>Blue</span>
+                                <span id="learning-blue-value">128</span>
+                            </div>
+                            <input id="learning-blue-slider" type="range" min="0" max="255" value="128" class="w-full">
+                        </div>
+                    </div>
+                    <p id="learning-tip" class="text-xs text-gray-400 italic">Tip: Start by matching one channel at a time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -342,7 +419,7 @@
         const db = getFirestore(app);
         getAnalytics(app);
 
-        const GUESS_TIME_LIMIT_MS = 30000;
+        const DEFAULT_ROUND_DURATION_MS = 30000;
 
         const targetColorBox = document.getElementById("target-color-box");
         const targetColorWrapper = document.getElementById("target-color-wrapper");
@@ -400,10 +477,28 @@
         const hostScoreboardList = document.getElementById("host-scoreboard-list");
         const hostRoundNumberDisplay = document.getElementById("host-round-number");
         const roundCountInput = document.getElementById("round-count");
+        const roundDurationInput = document.getElementById("round-duration");
         const roundConfig = document.getElementById("round-config");
         const roundCountError = document.getElementById("round-count-error");
+        const roundDurationError = document.getElementById("round-duration-error");
         const confirmRoundCountBtn = document.getElementById("confirm-round-count-btn");
         const roundTotalDisplay = document.getElementById("round-total");
+        const learningModeBtn = document.getElementById("learning-mode-btn");
+        const learningOverlay = document.getElementById("learning-mode-overlay");
+        const learningCloseBtn = document.getElementById("learning-close-btn");
+        const learningNewTargetBtn = document.getElementById("learning-new-target-btn");
+        const learningTargetBox = document.getElementById("learning-target-box");
+        const learningGuessBox = document.getElementById("learning-guess-box");
+        const learningTargetLabel = document.getElementById("learning-target-label");
+        const learningGuessLabel = document.getElementById("learning-guess-label");
+        const learningScoreLabel = document.getElementById("learning-score-label");
+        const learningTip = document.getElementById("learning-tip");
+        const learningRedSlider = document.getElementById("learning-red-slider");
+        const learningGreenSlider = document.getElementById("learning-green-slider");
+        const learningBlueSlider = document.getElementById("learning-blue-slider");
+        const learningRedValue = document.getElementById("learning-red-value");
+        const learningGreenValue = document.getElementById("learning-green-value");
+        const learningBlueValue = document.getElementById("learning-blue-value");
 
         const nicknameModal = document.getElementById("nickname-modal");
 
@@ -444,11 +539,13 @@
         let roundStatus = "WAITING";
         let gameStatus = "WAITING";
         let guessEndTime = 0;
+        let roundStartTime = 0;
         let timerInterval = null;
         let isFinalizingRound = false;
         let playerDocExists = false;
         let lastHistogramRound = null;
         let roundLimit = Infinity;
+        let roundDurationMs = DEFAULT_ROUND_DURATION_MS;
         let summaryHasNextRound = false;
         let pendingGuessSaveTimeout = null;
         let currentRoundSubmissions = new Set();
@@ -457,6 +554,7 @@
         let sfxEnabled = true;
         let currentMusic = null;
         let warningBellPlayed = false;
+        let learningTargetColor = { r: 128, g: 128, b: 128 };
         const waitingMusic = new Audio("music/Waiting Room Jumps.mp3");
         waitingMusic.loop = true;
         waitingMusic.volume = 0.3;
@@ -522,6 +620,65 @@
             const rawScore = Math.max(0, Math.round(100 * (1 - totalDiff / maxDiff)));
             const penalizedScore = Math.round((Math.pow(rawScore / 100, 1.5)) * 100);
             return penalizedScore;
+        }
+
+        function openLearningMode() {
+            if (!learningOverlay) return;
+            learningOverlay.classList.remove("hidden");
+            document.body.classList.add("overflow-hidden");
+            refreshLearningTargetColor();
+            updateLearningGuessPreview();
+        }
+
+        function closeLearningMode() {
+            if (!learningOverlay) return;
+            learningOverlay.classList.add("hidden");
+            document.body.classList.remove("overflow-hidden");
+        }
+
+        function refreshLearningTargetColor() {
+            learningTargetColor = {
+                r: getRandomColorValue(),
+                g: getRandomColorValue(),
+                b: getRandomColorValue()
+            };
+            if (learningTargetBox) {
+                learningTargetBox.style.backgroundColor = `rgb(${learningTargetColor.r}, ${learningTargetColor.g}, ${learningTargetColor.b})`;
+            }
+            if (learningTargetLabel) {
+                learningTargetLabel.textContent = `RGB(${learningTargetColor.r}, ${learningTargetColor.g}, ${learningTargetColor.b})`;
+            }
+            updateLearningGuessPreview();
+            if (learningTip) {
+                const tips = [
+                    "Tip: Match one slider at a time.",
+                    "Tip: Overshoot intentionally, then dial back.",
+                    "Tip: Compare against grayscale (equal RGB) baselines.",
+                    "Tip: High score? Try hiding the target and guessing!"
+                ];
+                learningTip.textContent = tips[Math.floor(Math.random() * tips.length)];
+            }
+        }
+
+        function updateLearningGuessPreview() {
+            if (!learningGuessBox) return;
+            const guess = {
+                r: parseInt(learningRedSlider?.value ?? "128", 10),
+                g: parseInt(learningGreenSlider?.value ?? "128", 10),
+                b: parseInt(learningBlueSlider?.value ?? "128", 10)
+            };
+            learningGuessBox.style.backgroundColor = `rgb(${guess.r}, ${guess.g}, ${guess.b})`;
+            if (learningGuessLabel) {
+                learningGuessLabel.textContent = `RGB(${guess.r}, ${guess.g}, ${guess.b})`;
+            }
+            if (learningRedValue) learningRedValue.textContent = guess.r;
+            if (learningGreenValue) learningGreenValue.textContent = guess.g;
+            if (learningBlueValue) learningBlueValue.textContent = guess.b;
+            if (learningScoreLabel) {
+                const score = calculateScore(learningTargetColor.r, learningTargetColor.g, learningTargetColor.b, guess.r, guess.g, guess.b);
+                const quality = score >= 95 ? "Perfect!" : score >= 80 ? "Great work" : score >= 60 ? "Close" : "Keep tweaking";
+                learningScoreLabel.textContent = `Score: ${score} pts · ${quality}`;
+            }
         }
 
         function openNicknameModal(prefill = "") {
@@ -1132,8 +1289,10 @@
                 }, { merge: true });
                 hasGuessed = true;
                 if (!isAuto) {
-                    const msRemaining = Math.max(0, guessEndTime - guess.timestamp);
-                    lastTimeBonus = Math.min(10, Math.floor(msRemaining / 3000));
+                    const totalDuration = Math.max(1000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                    const deadline = roundStartTime ? roundStartTime + totalDuration : guessEndTime;
+                    const msRemaining = Math.max(0, (deadline || Date.now()) - guess.timestamp);
+                    lastTimeBonus = Math.max(0, Math.round(10 * (msRemaining / totalDuration)));
                     feedbackMessage.textContent = `Guess submitted! Time bonus: +${lastTimeBonus} points`;
                     feedbackMessage.className = "h-16 text-center text-xl font-medium flex items-center justify-center p-2 rounded-lg text-white bg-green-600/70";
                     submitGuessBtn.textContent = `✓ Submitted (+${lastTimeBonus} bonus)`;
@@ -1302,6 +1461,7 @@
                 roundStatus = data.roundStatus;
                 gameStatus = data.gameStatus ?? "WAITING";
                 guessEndTime = data.guessEndTime ?? 0;
+                roundStartTime = data.roundStartTime ?? (guessEndTime ? guessEndTime - (data.roundDurationMs ?? roundDurationMs) : Date.now());
                 if (data.gameStatus === "SHOW_WINNER") {
                     if (isHost || isAdmin) {
                         stopAllMusic();
@@ -1311,6 +1471,12 @@
                 }
                 if (typeof data.roundLimit === "number" && data.roundLimit > 0) {
                     roundLimit = data.roundLimit;
+                }
+                if (typeof data.roundDurationMs === "number" && data.roundDurationMs > 0) {
+                    roundDurationMs = data.roundDurationMs;
+                    if (isAdmin && roundDurationInput) {
+                        roundDurationInput.value = Math.round(roundDurationMs / 1000);
+                    }
                 }
                 roundTotalDisplay.textContent = Number.isFinite(roundLimit) ? roundLimit : "∞";
 
@@ -1384,10 +1550,15 @@
             try {
                 const guessesSnapshot = await getDocs(query(guessesCollectionRef, where("gameId", "==", gameId), where("round", "==", currentRound)));
                 const results = [];
-                const roundDeadline = guessEndTime || Date.now();
+                const durationForRound = Math.max(1000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                const deadlineFallback = guessEndTime || Date.now();
+                const startFallback = roundStartTime || (deadlineFallback - durationForRound);
+                const roundDeadline = Math.max(deadlineFallback, startFallback + durationForRound);
+                const roundStartForHistory = startFallback;
                 const computeBonus = (timestamp) => {
-                    const msRemaining = Math.max(0, roundDeadline - timestamp);
-                    return Math.min(10, Math.floor(msRemaining / 3000));
+                    const clampedTimestamp = Math.min(roundDeadline, Math.max(roundStartForHistory, timestamp));
+                    const msRemaining = Math.max(0, roundDeadline - clampedTimestamp);
+                    return Math.max(0, Math.round(10 * (msRemaining / durationForRound)));
                 };
                 const batch = writeBatch(db);
                 guessesSnapshot.forEach((docSnap) => {
@@ -1418,7 +1589,7 @@
                         g: Number.isFinite(player.pendingGuessG) ? Number(player.pendingGuessG) : Number.isFinite(player.lastGuessG) ? Number(player.lastGuessG) : 128,
                         b: Number.isFinite(player.pendingGuessB) ? Number(player.pendingGuessB) : Number.isFinite(player.lastGuessB) ? Number(player.lastGuessB) : 128
                     };
-                    const autoTimestamp = Date.now();
+                    const autoTimestamp = roundDeadline;
                     const score = calculateScore(targetColor.r, targetColor.g, targetColor.b, fallback.r, fallback.g, fallback.b);
                     const bonus = 0;
                     const totalScoreForRound = score + bonus;
@@ -1487,7 +1658,8 @@
                     targetR: targetColor.r,
                     targetG: targetColor.g,
                     targetB: targetColor.b,
-                    roundStartTime: guessEndTime - 30000
+                    roundStartTime: roundStartForHistory,
+                    roundDurationMs: durationForRound
                 });
 
                 const projectedTotals = {};
@@ -1583,6 +1755,9 @@
                 return;
             }
             try {
+                let appliedStartTime = Date.now();
+                let appliedDuration = Math.max(15000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                let appliedGuessEndTime = appliedStartTime + appliedDuration;
                 await runTransaction(db, async (transaction) => {
                     const snapshot = await transaction.get(gameDocRef);
                     if (!snapshot.exists()) {
@@ -1591,13 +1766,17 @@
                     const data = snapshot.data();
                     const nextRound = (data.round ?? 0) + 1;
                     const newTarget = { r: getRandomColorValue(), g: getRandomColorValue(), b: getRandomColorValue() };
-                    const newGuessEndTime = Date.now() + GUESS_TIME_LIMIT_MS;
+                    appliedStartTime = Date.now();
+                    appliedDuration = Math.max(15000, roundDurationMs || DEFAULT_ROUND_DURATION_MS);
+                    appliedGuessEndTime = appliedStartTime + appliedDuration;
                     const gameUpdate = {
                         adminId: userId,
                         targetColor: newTarget,
                         round: nextRound,
                         roundStatus: "GUESSING",
-                        guessEndTime: newGuessEndTime,
+                        guessEndTime: appliedGuessEndTime,
+                        roundStartTime: appliedStartTime,
+                        roundDurationMs: appliedDuration,
                         timestamp: Date.now(),
                         lastRoundResults: [],
                         finalStandings: [],
@@ -1609,6 +1788,9 @@
                     }
                     transaction.set(gameDocRef, gameUpdate);
                 });
+                roundStartTime = appliedStartTime;
+                guessEndTime = appliedGuessEndTime;
+                roundDurationMs = appliedDuration;
                 hasGuessed = false;
                 winnerAnnouncement.classList.add("hidden");
                 roundOverlay.classList.add("hidden");
@@ -1664,6 +1846,18 @@
         practiceGreenSlider?.addEventListener("input", updatePracticePreview);
         practiceBlueSlider?.addEventListener("input", updatePracticePreview);
         updatePracticePreview();
+        learningModeBtn?.addEventListener("click", openLearningMode);
+        learningCloseBtn?.addEventListener("click", closeLearningMode);
+        learningOverlay?.addEventListener("click", (event) => {
+            if (event.target === learningOverlay) {
+                closeLearningMode();
+            }
+        });
+        [learningRedSlider, learningGreenSlider, learningBlueSlider].forEach((slider) => {
+            slider?.addEventListener("input", updateLearningGuessPreview);
+        });
+        learningNewTargetBtn?.addEventListener("click", refreshLearningTargetColor);
+        refreshLearningTargetColor();
         submitGuessBtn.addEventListener("click", () => submitGuess(false));
         startNewRoundBtn.addEventListener("click", async () => {
             startNewRoundBtn.disabled = true;
@@ -1721,13 +1915,26 @@
 
         confirmRoundCountBtn.addEventListener("click", async () => {
             const desiredRounds = parseInt(roundCountInput.value, 10);
+            const desiredDurationSeconds = parseInt(roundDurationInput.value, 10);
+            let hasError = false;
             if (Number.isNaN(desiredRounds) || desiredRounds < 1 || desiredRounds > 99) {
                 roundCountError.classList.remove("hidden");
-                return;
+                hasError = true;
+            } else {
+                roundCountError.classList.add("hidden");
             }
-            roundCountError.classList.add("hidden");
+            if (Number.isNaN(desiredDurationSeconds) || desiredDurationSeconds < 15 || desiredDurationSeconds > 180) {
+                roundDurationError.classList.remove("hidden");
+                hasError = true;
+            } else {
+                roundDurationError.classList.add("hidden");
+            }
+            if (hasError) return;
+
             const previousLimit = roundLimit;
+            const previousDuration = roundDurationMs;
             roundLimit = desiredRounds;
+            roundDurationMs = desiredDurationSeconds * 1000;
             roundTotalDisplay.textContent = roundLimit;
             feedbackMessage.textContent = "Starting the game...";
             confirmRoundCountBtn.disabled = true;
@@ -1740,6 +1947,7 @@
             } catch (error) {
                 startError = error;
                 roundLimit = previousLimit;
+                roundDurationMs = previousDuration;
                 roundTotalDisplay.textContent = Number.isFinite(previousLimit) ? previousLimit : "∞";
                 roundConfig.classList.remove("hidden");
                 waitingRoomDemo?.classList.remove("hidden");
