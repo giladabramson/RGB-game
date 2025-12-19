@@ -181,6 +181,14 @@
                             <input id="round-duration" type="number" min="15" max="180" value="30" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-xs" />
                             <p id="round-duration-error" class="text-red-400 text-xs mt-1 hidden">Enter a time between 15 and 180 seconds.</p>
                         </div>
+                        <div class="pt-2 border-t border-gray-800 mt-1 space-y-1">
+                            <p class="text-[10px] uppercase tracking-[0.35em] text-gray-400">Game mode</p>
+                            <p class="text-[11px] text-gray-300">Easy shows each player's current slider color. Classic hides it.</p>
+                            <select id="game-mode" class="w-full bg-gray-950 text-white border border-gray-600 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-xs">
+                                <option value="classic" selected>Classic (hidden color)</option>
+                                <option value="easy">Easy (show my color)</option>
+                            </select>
+                        </div>
                         <button id="confirm-round-count-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-1.5 rounded-lg transition-colors text-xs">Confirm &amp; start</button>
                         <p id="round-count-error" class="text-red-400 text-xs mt-1 hidden">Please enter a number between 1 and 99.</p>
                     </div>
@@ -256,6 +264,13 @@
             <button id="submit-guess-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200 shadow-lg disabled:bg-cyan-800 disabled:opacity-50">
                 Submit guess
             </button>
+        </div>
+
+        <div id="player-guess-visual" class="mb-6 hidden">
+            <div class="bg-gray-900/70 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4">
+                <div id="player-guess-preview" class="hidden w-24 h-16 rounded-xl border border-gray-600"></div>
+                <p id="player-guess-label" class="hidden text-sm text-gray-300"></p>
+            </div>
         </div>
 
         <div id="player-practice-board" class="bg-gray-900/80 border border-indigo-500/30 rounded-2xl p-4 space-y-3 mb-6 hidden">
@@ -478,6 +493,7 @@
         const hostRoundNumberDisplay = document.getElementById("host-round-number");
         const roundCountInput = document.getElementById("round-count");
         const roundDurationInput = document.getElementById("round-duration");
+        const gameModeSelect = document.getElementById("game-mode");
         const roundConfig = document.getElementById("round-config");
         const roundCountError = document.getElementById("round-count-error");
         const roundDurationError = document.getElementById("round-duration-error");
@@ -546,6 +562,7 @@
         let lastHistogramRound = null;
         let roundLimit = Infinity;
         let roundDurationMs = DEFAULT_ROUND_DURATION_MS;
+        let gameMode = "classic";
         let summaryHasNextRound = false;
         let pendingGuessSaveTimeout = null;
         let currentRoundSubmissions = new Set();
@@ -860,6 +877,14 @@
             redValue.textContent = r;
             greenValue.textContent = g;
             blueValue.textContent = b;
+            if (gameMode === "easy") {
+                const guessColorBox = document.getElementById("player-guess-preview");
+                const guessColorLabel = document.getElementById("player-guess-label");
+                if (guessColorBox && guessColorLabel) {
+                    guessColorBox.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+                    guessColorLabel.textContent = `Your current color: RGB(${r}, ${g}, ${b})`;
+                }
+            }
             savePendingGuessDebounced();
         }
 
@@ -1044,6 +1069,18 @@
             blueSlider.disabled = !allowGuessing;
             submitGuessBtn.disabled = !allowGuessing;
             playerActionBtns.classList.toggle("hidden", isAdmin);
+
+            const showLiveGuessColor = gameMode === "easy" && !isAdmin;
+            const guessVisualWrapper = document.getElementById("player-guess-visual");
+            const guessColorBox = document.getElementById("player-guess-preview");
+            const guessColorLabel = document.getElementById("player-guess-label");
+            if (guessVisualWrapper && guessColorBox && guessColorLabel) {
+                guessVisualWrapper.classList.toggle("hidden", !showLiveGuessColor);
+                if (showLiveGuessColor) {
+                    guessColorBox.style.backgroundColor = `rgb(${redSlider.value}, ${greenSlider.value}, ${blueSlider.value})`;
+                    guessColorLabel.textContent = `Your current color: RGB(${redSlider.value}, ${greenSlider.value}, ${blueSlider.value})`;
+                }
+            }
 
             if (isGuessingActive && !isAdmin) {
                 submitGuessBtn.textContent = "Submit guess";
@@ -1478,6 +1515,12 @@
                         roundDurationInput.value = Math.round(roundDurationMs / 1000);
                     }
                 }
+                if (typeof data.gameMode === "string") {
+                    gameMode = data.gameMode;
+                    if (isAdmin && gameModeSelect) {
+                        gameModeSelect.value = gameMode;
+                    }
+                }
                 roundTotalDisplay.textContent = Number.isFinite(roundLimit) ? roundLimit : "∞";
 
                 targetColorBox.style.backgroundColor = `rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
@@ -1777,6 +1820,7 @@
                         guessEndTime: appliedGuessEndTime,
                         roundStartTime: appliedStartTime,
                         roundDurationMs: appliedDuration,
+                        gameMode,
                         timestamp: Date.now(),
                         lastRoundResults: [],
                         finalStandings: [],
@@ -1916,6 +1960,7 @@
         confirmRoundCountBtn.addEventListener("click", async () => {
             const desiredRounds = parseInt(roundCountInput.value, 10);
             const desiredDurationSeconds = parseInt(roundDurationInput.value, 10);
+            const desiredMode = (gameModeSelect?.value ?? "classic").toLowerCase();
             let hasError = false;
             if (Number.isNaN(desiredRounds) || desiredRounds < 1 || desiredRounds > 99) {
                 roundCountError.classList.remove("hidden");
@@ -1933,8 +1978,10 @@
 
             const previousLimit = roundLimit;
             const previousDuration = roundDurationMs;
+            const previousMode = gameMode;
             roundLimit = desiredRounds;
             roundDurationMs = desiredDurationSeconds * 1000;
+            gameMode = desiredMode === "easy" ? "easy" : "classic";
             roundTotalDisplay.textContent = roundLimit;
             feedbackMessage.textContent = "Starting the game...";
             confirmRoundCountBtn.disabled = true;
@@ -1948,6 +1995,7 @@
                 startError = error;
                 roundLimit = previousLimit;
                 roundDurationMs = previousDuration;
+                gameMode = previousMode;
                 roundTotalDisplay.textContent = Number.isFinite(previousLimit) ? previousLimit : "∞";
                 roundConfig.classList.remove("hidden");
                 waitingRoomDemo?.classList.remove("hidden");
