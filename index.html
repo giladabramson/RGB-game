@@ -1076,6 +1076,8 @@
             const guessColorLabel = document.getElementById("player-guess-label");
             if (guessVisualWrapper && guessColorBox && guessColorLabel) {
                 guessVisualWrapper.classList.toggle("hidden", !showLiveGuessColor);
+                guessColorBox.classList.toggle("hidden", !showLiveGuessColor);
+                guessColorLabel.classList.toggle("hidden", !showLiveGuessColor);
                 if (showLiveGuessColor) {
                     guessColorBox.style.backgroundColor = `rgb(${redSlider.value}, ${greenSlider.value}, ${blueSlider.value})`;
                     guessColorLabel.textContent = `Your current color: RGB(${redSlider.value}, ${greenSlider.value}, ${blueSlider.value})`;
