@@ -183,6 +183,12 @@
         const cta = document.getElementById("cta");
         const copyLinkBtn = document.getElementById("copy-link-btn");
         const newRoomLink = document.getElementById("new-room-link");
+        const podiumStage = document.querySelector(".podium-stage");
+        const confettiContainer = document.getElementById("confetti-container");
+        const bestMatchHeading = document.querySelector("#best-color-match h4");
+        const fastestHeading = document.querySelector("#fastest-guess h4");
+        const isHostView = sessionStorage.getItem("rgbIsHost") === "true";
+        const viewerUserId = sessionStorage.getItem("rgbUserId");
 
         const winnerMusic = new Audio("music/Victory Royale.mp3");
         winnerMusic.loop = false;
@@ -215,7 +221,8 @@
                     .map((player, index) => ({
                         rank: index + 1,
                         nickname: player.nickname ?? (player.userId ? `${player.userId.slice(0, 8)}...` : "Player"),
-                        totalScore: Number(player.totalScore ?? 0)
+                        totalScore: Number(player.totalScore ?? 0),
+                        userId: player.userId
                     }));
 
                 if (standingsData.length === 0) {
@@ -223,44 +230,69 @@
                     return;
                 }
 
-                populatePodium(standingsData.slice(0, 3));
-                populateWinnerCard(standingsData[0]);
-                winnerMain.classList.remove("hidden");
-                if (sessionStorage.getItem("rgbIsHost") === "true") {
+                if (isHostView) {
+                    populatePodium(standingsData.slice(0, 3));
+                    populateWinnerCard(standingsData[0]);
+                    winnerMain.classList.remove("hidden");
                     winnerMusic.play().catch(() => {});
-                }
 
-                // Fetch and display special achievements
-                await populateSpecialAchievements(gameId, data);
+                    await populateSpecialAchievements(gameId, data);
 
-                standingsList.innerHTML = standingsData
-                    .map(player => `
-                        <li class="flex justify-between items-center bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-2">
-                            <span class="font-semibold text-white">#${player.rank} ${player.nickname}</span>
-                            <span class="text-cyan-300">${player.totalScore}</span>
-                        </li>
-                    `)
-                    .join("");
-                standings.classList.remove("hidden");
+                    standingsList.innerHTML = standingsData
+                        .map(player => `
+                            <li class="flex justify-between items-center bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-2">
+                                <span class="font-semibold text-white">#${player.rank} ${player.nickname}</span>
+                                <span class="text-cyan-300">${player.totalScore}</span>
+                            </li>
+                        `)
+                        .join("");
+                    standings.classList.remove("hidden");
 
-                const roomLink = `${window.location.origin}/index.html?game=${encodeURIComponent(gameId)}`;
-                copyLinkBtn.addEventListener("click", async () => {
-                    if (!navigator.clipboard) {
-                        copyLinkBtn.textContent = "Clipboard unavailable";
-                        setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+                    const roomLink = `${window.location.origin}/index.html?game=${encodeURIComponent(gameId)}`;
+                    copyLinkBtn.addEventListener("click", async () => {
+                        if (!navigator.clipboard) {
+                            copyLinkBtn.textContent = "Clipboard unavailable";
+                            setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+                            return;
+                        }
+                        try {
+                            await navigator.clipboard.writeText(roomLink);
+                            copyLinkBtn.textContent = "Link copied!";
+                            setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+                        } catch {
+                            copyLinkBtn.textContent = "Copy failed";
+                            setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+                        }
+                    });
+                    newRoomLink.href = "index.html";
+                    cta.classList.remove("hidden");
+                } else {
+                    podiumStage?.classList.add("hidden");
+                    confettiContainer?.classList.add("hidden");
+                    standings.classList.add("hidden");
+                    cta.classList.add("hidden");
+
+                    if (!viewerUserId) {
+                        statusMessage.textContent = "Open this page from the game tab to see your final stats.";
                         return;
                     }
-                    try {
-                        await navigator.clipboard.writeText(roomLink);
-                        copyLinkBtn.textContent = "Link copied!";
-                        setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
-                    } catch {
-                        copyLinkBtn.textContent = "Copy failed";
-                        setTimeout(() => (copyLinkBtn.textContent = "Copy room link"), 1500);
+
+                    const viewerStanding = standingsData.find(player => player.userId === viewerUserId);
+                    if (!viewerStanding) {
+                        statusMessage.textContent = "We couldn't find your score in this game.";
+                        return;
                     }
-                });
-                newRoomLink.href = "index.html";
-                cta.classList.remove("hidden");
+
+                    winnerMain.innerHTML = `
+                        <p class="text-sm uppercase tracking-[0.4em] text-cyan-200 mb-2">Your results</p>
+                        <h2 class="text-3xl font-bold text-white">${viewerStanding.nickname}</h2>
+                        <p class="text-cyan-200 mt-1">Final place: #${viewerStanding.rank}</p>
+                        <p class="text-cyan-200">Total score: ${viewerStanding.totalScore}</p>
+                    `;
+                    winnerMain.classList.remove("hidden");
+
+                    await populateSpecialAchievements(gameId, data, { onlyForUser: viewerUserId });
+                }
             } catch (error) {
                 console.error("Error loading winner page:", error);
                 statusMessage.textContent = "Something went wrong while loading the winner page.";
@@ -279,7 +311,8 @@
             `;
         }
 
-        async function populateSpecialAchievements(gameId, gameData) {
+        async function populateSpecialAchievements(gameId, gameData, options = {}) {
+            const onlyUserId = options.onlyForUser ?? null;
             try {
                 const guessesRef = collection(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_guesses");
                 const guessesQuery = query(guessesRef, where("gameId", "==", gameId));
@@ -292,9 +325,9 @@
                 const playerMap = {};
                 playersSnapshot.forEach(docSnap => {
                     const player = docSnap.data();
-                    if (!player.isHost) {
-                        playerMap[player.userId] = player.nickname ?? `${player.userId.slice(0, 8)}...`;
-                    }
+                    if (player.isHost) return;
+                    if (onlyUserId && player.userId !== onlyUserId) return;
+                    playerMap[player.userId] = player.nickname ?? `${player.userId.slice(0, 8)}...`;
                 });
 
                 const roundHistoryRef = collection(db, "artifacts", "rgb-guess-game-master", "public", "data", "rgb_round_history");
@@ -310,9 +343,18 @@
                 let bestColorMatch = null;
                 let fastestGuess = null;
 
+                if (bestMatchHeading) {
+                    bestMatchHeading.textContent = onlyUserId ? "🎨 Your Closest Match" : "🎨 Best Color Match";
+                }
+                if (fastestHeading) {
+                    fastestHeading.textContent = onlyUserId ? "⚡ Your Fastest Guess" : "⚡ Fastest Guess";
+                }
+
                 guessesSnapshot.forEach(docSnap => {
                     const guess = docSnap.data();
-                    if (!guess.score || playerMap[guess.userId] === undefined) return;
+                    if (!guess.score) return;
+                    if (onlyUserId && guess.userId !== onlyUserId) return;
+                    if (!onlyUserId && playerMap[guess.userId] === undefined) return;
 
                     const scoreWithoutBonus = guess.score;
                     const roundData = roundDataMap[guess.round];
@@ -345,12 +387,13 @@
                 });
 
                 if (bestColorMatch) {
+                    const nameLabel = onlyUserId ? "You" : bestColorMatch.nickname;
                     bestMatchContent.innerHTML = `
-                        <p class="text-white font-semibold">${bestColorMatch.nickname}</p>
-                        <p class="text-gray-300">Score: ${bestColorMatch.score} pts</p>
+                        <p class="text-white font-semibold">${nameLabel}</p>
+                        <p class="text-gray-300">Round ${bestColorMatch.round} · Score ${bestColorMatch.score} pts</p>
                         <div class="flex gap-2 mt-2 items-center">
                             <div class="flex-1">
-                                <p class="text-xs text-gray-400 mb-1">Guess</p>
+                                <p class="text-xs text-gray-400 mb-1">${onlyUserId ? "Your guess" : "Guess"}</p>
                                 <div class="h-8 rounded border border-gray-600" style="background-color: rgb(${bestColorMatch.guessR}, ${bestColorMatch.guessG}, ${bestColorMatch.guessB});"></div>
                                 <p class="text-xs text-gray-400 mt-1">RGB(${bestColorMatch.guessR}, ${bestColorMatch.guessG}, ${bestColorMatch.guessB})</p>
                             </div>
@@ -361,21 +404,28 @@
                             </div>
                         </div>
                     `;
+                } else {
+                    bestMatchContent.innerHTML = `<p class="text-gray-400 text-sm">No color-match data available.</p>`;
                 }
 
                 if (fastestGuess) {
                     const timeMs = fastestGuess.timeToAnswer || 0;
                     const timeSec = (timeMs / 1000).toFixed(2);
+                    const nameLabel = onlyUserId ? "You" : fastestGuess.nickname;
                     fastestContent.innerHTML = `
-                        <p class="text-white font-semibold">${fastestGuess.nickname}</p>
-                        <p class="text-gray-300">Score: ${fastestGuess.score} pts</p>
+                        <p class="text-white font-semibold">${nameLabel}</p>
+                        <p class="text-gray-300">Round ${fastestGuess.round}</p>
                         <p class="text-green-400 font-bold text-2xl mt-2">${timeSec}s</p>
-                        <p class="text-xs text-gray-400">Time to answer</p>
+                        <p class="text-xs text-gray-400">${onlyUserId ? "Your quickest submission" : "Time to answer"}</p>
                     `;
+                } else {
+                    fastestContent.innerHTML = `<p class="text-gray-400 text-sm">No timing data available.</p>`;
                 }
 
                 if (bestColorMatch || fastestGuess) {
                     specialAchievements.classList.remove("hidden");
+                } else {
+                    specialAchievements.classList.add("hidden");
                 }
             } catch (error) {
                 console.error("Error loading special achievements:", error);
@@ -398,9 +448,8 @@
         }
 
         function spawnConfetti() {
-            const container = document.getElementById("confetti-container");
-            if (!container) return;
-            container.innerHTML = "";
+            if (!confettiContainer) return;
+            confettiContainer.innerHTML = "";
             const colors = ["#fbbf24", "#34d399", "#60a5fa", "#f472b6"];
             for (let i = 0; i < 150; i += 1) {
                 const piece = document.createElement("span");
@@ -408,7 +457,7 @@
                 piece.style.animationDuration = `${3 + Math.random() * 4}s`;
                 piece.style.animationDelay = `${Math.random() * 3}s`;
                 piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-                container.appendChild(piece);
+                confettiContainer.appendChild(piece);
             }
         }
     </script>

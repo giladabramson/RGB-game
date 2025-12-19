@@ -1569,8 +1569,10 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
+                        sessionStorage.setItem("rgbUserId", user.uid);
                         hideEntryError();
                     } else {
+                        sessionStorage.removeItem("rgbUserId");
                         await signInAnonymously(auth);
                     }
                 });

@@ -1625,6 +1625,7 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
+                        sessionStorage.setItem("rgbUserId", user.uid);
                         hideEntryError();
                         
                         // Auto-join if game code is in URL
@@ -1635,6 +1636,7 @@
                             setTimeout(() => startJoinFlow(), 100);
                         }
                     } else {
+                        sessionStorage.removeItem("rgbUserId");
                         await signInAnonymously(auth);
                     }
                 });
