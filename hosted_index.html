@@ -111,7 +111,7 @@
         <p id="entry-error" class="text-center text-sm text-red-400 mt-6 hidden">Unable to continue. Please try again.</p>
     </div>
 
-    <div id="game-screen" class="hidden w-full max-w-4xl lg:max-w-[90vw] xl:max-w-[85vw] mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 mt-10 relative" style="display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;">
+    <div id="game-screen" class="hidden w-full max-w-4xl lg:max-w-[90vw] xl:max-w-[85vw] mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 mt-10 relative">
         <h1 class="text-3xl font-bold text-center text-white mb-4">Guess the RGB</h1>
         <p id="round-info" class="text-xs text-center text-gray-400 mb-4 hidden">Round <span id="round-number">1</span> of <span id="round-total">∞</span></p>
         <div id="player-info-wrapper" class="space-y-1 mb-4 hidden">
@@ -932,10 +932,14 @@
         }
 
         function playSfx(audio) {
-            if (!sfxEnabled || !audio || !(isHost || isAdmin)) return;
-            const instance = audio.cloneNode(true);
-            instance.volume = audio.volume;
-            instance.play().catch(() => {});
+            if (!sfxEnabled || !audio) return;
+            try {
+                const instance = audio.cloneNode(true);
+                instance.volume = audio.volume;
+                instance.play().catch(() => {});
+            } catch (e) {
+                // ignore play errors
+            }
         }
 
         function checkForAutoFinalize() {
@@ -1005,7 +1009,7 @@
                 const timeLeft = guessEndTime - Date.now();
                 const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
                 const hostControlsActive = isAdmin || isHost;
-                if (!warningBellPlayed && hostControlsActive && secondsLeft <= 10 && secondsLeft > 0) {
+                if (!warningBellPlayed && secondsLeft <= 10 && secondsLeft > 0) {
                     playSfx(warningBellSfx);
                     warningBellPlayed = true;
                 }
@@ -1104,7 +1108,6 @@
                 playerInfoWrapper?.classList.remove("hidden");
                 document.getElementById("round-info")?.classList.remove("hidden");
                 document.getElementById("scoreboard-section")?.classList.remove("hidden");
-                document.getElementById("player-panel")?.classList.remove("hidden");
                 guessControls.classList.remove("hidden");
                 startNewRoundBtn.classList.toggle("hidden", isPreGame);
                 waitingRoomDemo?.classList.toggle("hidden", !isPreGame);
