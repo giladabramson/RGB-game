@@ -585,9 +585,39 @@
         submitSfx.volume = 0.45;
         const winnerSfx = new Audio("https://cdn.pixabay.com/download/audio/2022/04/25/audio_3b1799d1a3.mp3?filename=success-1-6297.mp3");
         winnerSfx.volume = 0.6;
-        const warningBellSfx = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_f5df3b3dbe.mp3?filename=bell-notification-126903.mp3");
-        warningBellSfx.volume = 0.6;
 
+        // Generate bell tone using Web Audio API
+        function playBellTone() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                
+                // Create oscillators for bell sound (two frequencies)
+                const osc1 = audioContext.createOscillator();
+                const osc2 = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                // Bell frequencies
+                osc1.frequency.value = 520; // Main frequency
+                osc2.frequency.value = 780; // Harmonic
+                
+                // Envelope
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                
+                osc1.connect(gainNode);
+                osc2.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.6);
+                osc2.stop(now + 0.6);
+            } catch (e) {
+                // Fallback: silent if Web Audio API fails
+                console.warn("Bell tone failed:", e);
+            }
+        }
         function generateRoomCode() {
             const min = 10 ** (ROOM_CODE_LENGTH - 1);
             const max = 10 ** ROOM_CODE_LENGTH - 1;
@@ -1009,8 +1039,9 @@
                 const timeLeft = guessEndTime - Date.now();
                 const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
                 const hostControlsActive = isAdmin || isHost;
-                if (!warningBellPlayed && secondsLeft <= 10 && secondsLeft > 0) {
-                    playSfx(warningBellSfx);
+                // Play bell tone only for host when 10 seconds remain
+                if (!warningBellPlayed && hostControlsActive && secondsLeft <= 10 && secondsLeft > 0) {
+                    playBellTone();
                     warningBellPlayed = true;
                 }
                 if (secondsLeft <= 0) {
